@@ -1,24 +1,52 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 export function TarjetaTela({ tela, onClick }) {
   const [imagenActual, setImagenActual] = useState(0)
+  const touchStartX = useRef(0)
+  const touchEndX = useRef(0)
   
   const todasLasImagenes = tela.imagenes_tela || []
   const tieneMultiplesImagenes = todasLasImagenes.length > 1
   
   const siguienteImagen = (e) => {
-    e.stopPropagation()
+    e?.stopPropagation()
     if (todasLasImagenes.length > 0) {
       setImagenActual((prev) => (prev + 1) % todasLasImagenes.length)
     }
   }
   
   const anteriorImagen = (e) => {
-    e.stopPropagation()
+    e?.stopPropagation()
     if (todasLasImagenes.length > 0) {
       setImagenActual((prev) => (prev - 1 + todasLasImagenes.length) % todasLasImagenes.length)
     }
+  }
+  
+  // Manejo de swipe táctil
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX
+  }
+  
+  const handleTouchMove = (e) => {
+    touchEndX.current = e.touches[0].clientX
+  }
+  
+  const handleTouchEnd = (e) => {
+    e.stopPropagation()
+    if (!tieneMultiplesImagenes) return
+    
+    const diff = touchStartX.current - touchEndX.current
+    if (Math.abs(diff) < 50) return // Umbral mínimo de 50px
+    
+    if (diff > 0) {
+      siguienteImagen(e)
+    } else {
+      anteriorImagen(e)
+    }
+    
+    touchStartX.current = 0
+    touchEndX.current = 0
   }
   
   const imagenActualUrl = todasLasImagenes[imagenActual]?.imagen_url || null
@@ -46,13 +74,18 @@ export function TarjetaTela({ tela, onClick }) {
         e.currentTarget.style.borderColor = '#e5dfd7'
       }}
     >
-      {/* Imagen con slider */}
-      <div style={{ 
-        position: 'relative',
-        height: '240px', 
-        overflow: 'hidden',
-        background: '#f5f5f0'
-      }}>
+      {/* Imagen con slider y soporte táctil */}
+      <div 
+        style={{ 
+          position: 'relative',
+          height: '240px', 
+          overflow: 'hidden',
+          background: '#f5f5f0'
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
         {imagenActualUrl ? (
           <>
             <img 
@@ -62,7 +95,8 @@ export function TarjetaTela({ tela, onClick }) {
                 width: '100%', 
                 height: '100%', 
                 objectFit: 'cover',
-                transition: 'transform 0.5s ease'
+                transition: 'transform 0.5s ease',
+                pointerEvents: 'none'
               }}
               onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
               onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
@@ -78,7 +112,8 @@ export function TarjetaTela({ tela, onClick }) {
                 display: 'flex',
                 justifyContent: 'center',
                 gap: '6px',
-                zIndex: 2
+                zIndex: 2,
+                padding: '4px'
               }}>
                 {todasLasImagenes.map((_, idx) => (
                   <div
@@ -95,7 +130,7 @@ export function TarjetaTela({ tela, onClick }) {
               </div>
             )}
             
-            {/* Botones de navegación */}
+            {/* Botones de navegación - solo visibles en desktop */}
             {tieneMultiplesImagenes && (
               <>
                 <button
@@ -119,6 +154,8 @@ export function TarjetaTela({ tela, onClick }) {
                     transition: 'all 0.3s ease',
                     zIndex: 2
                   }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.7)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(0,0,0,0.5)'}
                 >
                   <ChevronLeft size={18} />
                 </button>
@@ -201,7 +238,6 @@ export function TarjetaTela({ tela, onClick }) {
       
       {/* Contenido */}
       <div style={{ padding: '1rem' }}>
-        {/* Referencia - MODIFICADA: más negrilla y más grande */}
         <div style={{ 
           fontSize: '0.85rem', 
           fontWeight: '700',
@@ -212,7 +248,6 @@ export function TarjetaTela({ tela, onClick }) {
           {tela.referencia || 'REF: N/A'}
         </div>
         
-        {/* Nombre - como título */}
         <h3 style={{ 
           fontSize: '1rem', 
           fontWeight: '700', 
@@ -264,7 +299,6 @@ export function TarjetaTela({ tela, onClick }) {
           </div>
         )}
         
-        {/* Stock */}
         {tela.stock > 0 && (
           <div style={{ 
             display: 'flex', 

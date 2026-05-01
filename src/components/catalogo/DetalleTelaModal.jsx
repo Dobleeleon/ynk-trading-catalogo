@@ -1,8 +1,10 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 export function DetalleTelaModal({ tela, onClose }) {
   const [imagenActual, setImagenActual] = useState(0)
+  const touchStartX = useRef(0)
+  const touchEndX = useRef(0)
   
   const todasLasImagenes = tela.imagenes_tela || []
   const tieneMultiplesImagenes = todasLasImagenes.length > 1
@@ -21,19 +23,49 @@ export function DetalleTelaModal({ tela, onClose }) {
     }
   }
   
+  // Manejo de swipe táctil
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX
+  }
+  
+  const handleTouchMove = (e) => {
+    touchEndX.current = e.touches[0].clientX
+  }
+  
+  const handleTouchEnd = (e) => {
+    if (!tieneMultiplesImagenes) return
+    
+    const diff = touchStartX.current - touchEndX.current
+    if (Math.abs(diff) < 50) return
+    
+    if (diff > 0) {
+      siguienteImagen(e)
+    } else {
+      anteriorImagen(e)
+    }
+    
+    touchStartX.current = 0
+    touchEndX.current = 0
+  }
+  
   const imagenActualUrl = todasLasImagenes[imagenActual]?.imagen_url || null
 
   return (
     <div>
-      {/* Sección de imágenes con slider */}
+      {/* Sección de imágenes con slider y soporte táctil */}
       <div style={{ marginBottom: '1.5rem' }}>
-        <div style={{ 
-          position: 'relative',
-          borderRadius: '16px',
-          overflow: 'hidden',
-          background: '#f5f5f0',
-          aspectRatio: '1/1'
-        }}>
+        <div 
+          style={{ 
+            position: 'relative',
+            borderRadius: '16px',
+            overflow: 'hidden',
+            background: '#f5f5f0',
+            aspectRatio: '1/1'
+          }}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
           {imagenActualUrl ? (
             <>
               <img 
@@ -42,11 +74,12 @@ export function DetalleTelaModal({ tela, onClose }) {
                 style={{ 
                   width: '100%', 
                   height: '100%', 
-                  objectFit: 'cover'
+                  objectFit: 'cover',
+                  pointerEvents: 'none'
                 }}
               />
               
-              {/* Botones de navegación */}
+              {/* Botones de navegación - visibles en desktop y táctiles grandes */}
               {tieneMultiplesImagenes && (
                 <>
                   <button
@@ -67,7 +100,8 @@ export function DetalleTelaModal({ tela, onClose }) {
                       justifyContent: 'center',
                       cursor: 'pointer',
                       color: 'white',
-                      transition: 'all 0.3s ease'
+                      transition: 'all 0.3s ease',
+                      zIndex: 2
                     }}
                     onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.8)'}
                     onMouseLeave={e => e.currentTarget.style.background = 'rgba(0,0,0,0.6)'}
@@ -126,7 +160,8 @@ export function DetalleTelaModal({ tela, onClose }) {
               fontSize: '0.75rem',
               padding: '0.25rem 0.75rem',
               borderRadius: '20px',
-              fontWeight: '500'
+              fontWeight: '500',
+              zIndex: 2
             }}>
               {imagenActual + 1} / {todasLasImagenes.length}
             </div>
@@ -141,7 +176,8 @@ export function DetalleTelaModal({ tela, onClose }) {
               right: 0,
               display: 'flex',
               justifyContent: 'center',
-              gap: '8px'
+              gap: '8px',
+              zIndex: 2
             }}>
               {todasLasImagenes.map((_, idx) => (
                 <button
@@ -165,14 +201,15 @@ export function DetalleTelaModal({ tela, onClose }) {
           )}
         </div>
         
-        {/* Miniaturas */}
+        {/* Miniaturas - horizontal scrollable */}
         {tieneMultiplesImagenes && (
           <div style={{
             display: 'flex',
             gap: '8px',
             marginTop: '12px',
             overflowX: 'auto',
-            paddingBottom: '4px'
+            paddingBottom: '4px',
+            WebkitOverflowScrolling: 'touch'
           }}>
             {todasLasImagenes.map((img, idx) => (
               <div
@@ -186,7 +223,8 @@ export function DetalleTelaModal({ tela, onClose }) {
                   cursor: 'pointer',
                   border: idx === imagenActual ? '2px solid #c47d3e' : '2px solid transparent',
                   opacity: idx === imagenActual ? 1 : 0.6,
-                  transition: 'all 0.2s ease'
+                  transition: 'all 0.2s ease',
+                  flexShrink: 0
                 }}
               >
                 <img 
@@ -202,7 +240,6 @@ export function DetalleTelaModal({ tela, onClose }) {
       
       {/* Información de la tela */}
       <div>
-        {/* Referencia - MODIFICADA: más grande y negrilla */}
         <div style={{ 
           fontSize: '1rem', 
           fontWeight: '700',
@@ -213,12 +250,10 @@ export function DetalleTelaModal({ tela, onClose }) {
           {tela.referencia || 'Referencia: N/A'}
         </div>
         
-        {/* Item - secundario */}
         <p style={{ fontSize: '0.85rem', color: '#9a8f84', marginBottom: '0.75rem' }}>
           Item: {tela.item || 'N/A'}
         </p>
         
-        {/* Título principal */}
         <h2 style={{ 
           fontSize: '1.6rem', 
           fontWeight: 700, 

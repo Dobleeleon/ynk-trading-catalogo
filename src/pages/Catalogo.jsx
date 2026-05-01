@@ -4,9 +4,10 @@ import { telaService, categoriaService, colorService } from '../services/api'
 import { getSiteSetting } from '../services/supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { TarjetaTela } from '../components/catalogo/TarjetaTela'
+import { Filtros } from '../components/catalogo/Filtros'
 import { CatalogoEditorFashion } from '../components/CatalogoEditorFashion'
-import { DetalleTelaModal } from '../components/catalogo/DetalleTelaModal'
 import { Modal } from '../components/ui/Modal'
+import { DetalleTelaModal } from '../components/catalogo/DetalleTelaModal'
 import toast from 'react-hot-toast'
 
 const DEFAULT_BANNER = 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=1200&q=85'
@@ -22,7 +23,10 @@ export function Catalogo() {
     categoriaId: 'todos',
     colorId: null,
     precioMin: '',
-    precioMax: ''
+    precioMax: '',
+    pesoMin: null,
+    pesoMax: null,
+    pesoRange: 'todos'
   })
   const [busqueda, setBusqueda] = useState('')
   const [vista, setVista] = useState('grid')
@@ -86,22 +90,47 @@ export function Catalogo() {
   const aplicarFiltros = () => {
     let filtradas = [...telas]
 
+    // Búsqueda por texto
     if (busqueda) {
       filtradas = filtradas.filter(t =>
-        t.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+        t.nombre?.toLowerCase().includes(busqueda.toLowerCase()) ||
         t.referencia?.toLowerCase().includes(busqueda.toLowerCase()) ||
         t.composicion?.toLowerCase().includes(busqueda.toLowerCase())
       )
     }
 
+    // Filtro por categoría
     if (filtros.categoriaId !== 'todos') {
       filtradas = filtradas.filter(t => t.categoria_id === parseInt(filtros.categoriaId))
     }
 
+    // Filtro por color
     if (filtros.colorId) {
       filtradas = filtradas.filter(t =>
         t.tela_colores?.some(tc => tc.colores.id === filtros.colorId)
       )
+    }
+
+    // Filtro por precio
+    if (filtros.precioMin) {
+      filtradas = filtradas.filter(t => t.precio >= parseFloat(filtros.precioMin))
+    }
+    if (filtros.precioMax) {
+      filtradas = filtradas.filter(t => t.precio <= parseFloat(filtros.precioMax))
+    }
+
+    // NUEVO: Filtro por peso
+    if (filtros.pesoMin !== null && filtros.pesoMin !== undefined && filtros.pesoMin !== '') {
+      filtradas = filtradas.filter(t => {
+        const pesoNum = parseFloat(t.peso)
+        return !isNaN(pesoNum) && pesoNum >= filtros.pesoMin
+      })
+    }
+    if (filtros.pesoMax !== null && filtros.pesoMax !== undefined && filtros.pesoMax !== '') {
+      filtradas = filtradas.filter(t => {
+        const pesoNum = parseFloat(t.peso)
+        return !isNaN(pesoNum) && pesoNum <= filtros.pesoMax
+      })
     }
 
     setTelasFiltradas(filtradas)
@@ -111,13 +140,26 @@ export function Catalogo() {
     setFiltros({ ...filtros, [key]: value })
   }
 
-  const limpiarFiltros = () => {
-    setFiltros({ categoriaId: 'todos', colorId: null, precioMin: '', precioMax: '' })
+  const handleLimpiarFiltros = () => {
+    setFiltros({
+      categoriaId: 'todos',
+      colorId: null,
+      precioMin: '',
+      precioMax: '',
+      pesoMin: null,
+      pesoMax: null,
+      pesoRange: 'todos'
+    })
     setBusqueda('')
     setMostrarFiltros(false)
   }
 
-  const filtrosActivos = filtros.categoriaId !== 'todos' || filtros.colorId
+  const filtrosActivos = filtros.categoriaId !== 'todos' || 
+                         filtros.colorId || 
+                         filtros.precioMin || 
+                         filtros.precioMax || 
+                         filtros.pesoMin !== null || 
+                         filtros.pesoMax !== null
 
   if (bannerLoading || cargando) {
     return (
@@ -277,7 +319,7 @@ export function Catalogo() {
             </div>
 
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
-              {/* Filtros */}
+              {/* Botón de filtros */}
               <button
                 onClick={() => setMostrarFiltros(!mostrarFiltros)}
                 className={`ynk-btn-outline ${mostrarFiltros || filtrosActivos ? 'active' : ''}`}
@@ -298,12 +340,8 @@ export function Catalogo() {
 
               {/* Botón "Diseñar Catálogo" — solo para usuarios logueados con rol editor o admin */}
               {user && isEditor && (
-                <button
-                  onClick={() => setShowEditor(true)}
-                  className="ynk-btn-primary"
-                >
-                  <Palette size={16} />
-                  Diseñar Catálogo
+                <button onClick={() => setShowEditor(true)} className="ynk-btn-primary">
+                  <Palette size={16} /> Diseñar Catálogo
                 </button>
               )}
 
@@ -340,63 +378,16 @@ export function Catalogo() {
             </div>
           </div>
 
-          {/* Panel de filtros */}
+          {/* Panel de filtros con nuevo componente */}
           {mostrarFiltros && (
             <div className="ynk-filtros-panel">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-                <h3 style={{ fontWeight: 600, fontSize: '1.05rem', color: '#1a2332' }}>Filtros de búsqueda</h3>
-                <button
-                  onClick={limpiarFiltros}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#c47d3e', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
-                >
-                  <X size={14} /> Limpiar todo
-                </button>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
-                {/* Categoría */}
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#1a2332', marginBottom: '0.5rem' }}>Categoría</label>
-                  <select
-                    value={filtros.categoriaId}
-                    onChange={(e) => handleFiltroChange('categoriaId', e.target.value)}
-                    style={{
-                      width: '100%', padding: '0.65rem 1rem',
-                      border: '1.5px solid #e5dfd7', borderRadius: '12px',
-                      background: 'white', fontSize: '0.9rem', outline: 'none',
-                      color: '#1a2332', cursor: 'pointer'
-                    }}
-                  >
-                    <option value="todos">Todas las categorías</option>
-                    {categorias.map(cat => (
-                      <option key={cat.id} value={cat.id}>{cat.nombre}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Colores */}
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#1a2332', marginBottom: '0.5rem' }}>Color</label>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', maxHeight: '120px', overflowY: 'auto', padding: '0.25rem' }}>
-                    {colores.map(color => (
-                      <button
-                        key={color.id}
-                        onClick={() => handleFiltroChange('colorId', color.id === filtros.colorId ? null : color.id)}
-                        title={color.nombre}
-                        style={{
-                          width: '36px', height: '36px', borderRadius: '50%',
-                          background: color.codigo_hex,
-                          border: filtros.colorId === color.id ? '3px solid #c47d3e' : '2px solid white',
-                          boxShadow: filtros.colorId === color.id ? '0 0 0 2px #c47d3e' : '0 2px 4px rgba(0,0,0,0.15)',
-                          cursor: 'pointer',
-                          transform: filtros.colorId === color.id ? 'scale(1.15)' : 'scale(1)',
-                          transition: 'all 0.2s'
-                        }}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
+              <Filtros
+                categorias={categorias}
+                colores={colores}
+                filtros={filtros}
+                onFiltroChange={handleFiltroChange}
+                onLimpiarFiltros={handleLimpiarFiltros}
+              />
             </div>
           )}
 
@@ -428,7 +419,7 @@ export function Catalogo() {
               <div style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>🔍</div>
               <p style={{ color: '#4b5563', fontSize: '1.1rem', marginBottom: '0.5rem' }}>No se encontraron telas</p>
               <p style={{ color: '#9a8f84', marginBottom: '1.5rem', fontSize: '0.9rem' }}>Intenta con otros filtros o palabras de búsqueda</p>
-              <button onClick={limpiarFiltros} className="ynk-btn-primary" style={{ margin: '0 auto' }}>
+              <button onClick={handleLimpiarFiltros} className="ynk-btn-primary" style={{ margin: '0 auto' }}>
                 Limpiar filtros
               </button>
             </div>
@@ -436,18 +427,17 @@ export function Catalogo() {
         </div>
       </div>
 
-      {/* Footer - simplificado */}
+      {/* Footer */}
       <footer className="ynk-footer">
         <p className="ynk-footer-copy">© 2025 YNK Trading · Todos los derechos reservados</p>
       </footer>
 
-      {/* Modal detalle de tela - sin precio ni cotización */}
-
-<Modal isOpen={!!telaSeleccionada} onClose={() => setTelaSeleccionada(null)}>
-  {telaSeleccionada && (
-    <DetalleTelaModal tela={telaSeleccionada} onClose={() => setTelaSeleccionada(null)} />
-  )}
-</Modal>
+      {/* Modal detalle de tela */}
+      <Modal isOpen={!!telaSeleccionada} onClose={() => setTelaSeleccionada(null)}>
+        {telaSeleccionada && (
+          <DetalleTelaModal tela={telaSeleccionada} onClose={() => setTelaSeleccionada(null)} />
+        )}
+      </Modal>
 
       {/* Editor de catálogo fashion */}
       {showEditor && (

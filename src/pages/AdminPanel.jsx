@@ -6,7 +6,7 @@ import { AdminColores } from '../components/admin/AdminColores'
 import { AdminUsuarios } from '../components/admin/AdminUsuarios'
 import { useAuth } from '../context/AuthContext'
 import { getSiteSettings, setSiteSetting } from '../services/supabaseClient'
-import { LogOut, Users } from 'lucide-react'
+import { LogOut, Users, Search, Filter, ChevronDown } from 'lucide-react'
 import {
   Edit, Trash2, Package, Layers, Palette,
   Image as ImageIcon, Upload, Save, X, AlertCircle
@@ -24,10 +24,17 @@ export function AdminPanel() {
   const { user, profile, isAdmin, isEditor, logout } = useAuth()
   const [activeTab, setActiveTab] = useState('telas')
   const [telas, setTelas] = useState([])
+  const [telasFiltradas, setTelasFiltradas] = useState([])
+  const [busquedaTelas, setBusquedaTelas] = useState('')
+  const [categoriaFiltro, setCategoriaFiltro] = useState('todos')
+  const [pesoFiltro, setPesoFiltro] = useState('todos')
+  const [ordenPor, setOrdenPor] = useState('nombre')
+  const [ordenDir, setOrdenDir] = useState('asc')
   const [categorias, setCategorias] = useState([])
   const [colores, setColores] = useState([])
   const [showForm, setShowForm] = useState(false)
   const [telaEditando, setTelaEditando] = useState(null)
+  const [mostrarFiltros, setMostrarFiltros] = useState(false)
 
   // Banners
   const [homePreview, setHomePreview] = useState(DEFAULT_BANNER)
@@ -36,10 +43,30 @@ export function AdminPanel() {
   const [uploading, setUploading] = useState({ home: false, catalogo: false })
   const [loadingBanners, setLoadingBanners] = useState(true)
 
+  // Opciones de peso
+  const opcionesPeso = [
+    { label: 'Todos', value: 'todos' },
+    { label: 'Menos de 10 oz', value: '0-10' },
+    { label: '10 - 11 oz', value: '10-11' },
+    { label: '11 - 12 oz', value: '11-12' },
+    { label: '12 - 13 oz', value: '12-13' },
+    { label: 'Más de 13 oz', value: '13+' }
+  ]
+
+  // Opciones de ordenamiento
+  const opcionesOrden = [
+    { label: 'Nombre', value: 'nombre' },
+    { label: 'Referencia', value: 'referencia' },
+    { label: 'Categoría', value: 'categoria' },
+    { label: 'Peso', value: 'peso' },
+    { label: 'Stock', value: 'stock' },
+    { label: 'Fecha creación', value: 'created_at' }
+  ]
+
   // Tabs disponibles según rol
   const allTabs = [
     { id: 'telas', label: 'Telas', icon: Package, roles: ['admin', 'editor'] },
-    { id: 'categorias', label: 'Categorías', icon: Layers, roles: ['admin', 'editor'] }, // EDITOR también puede modificar categorías
+    { id: 'categorias', label: 'Categorías', icon: Layers, roles: ['admin'] },
     { id: 'colores', label: 'Colores', icon: Palette, roles: ['admin', 'editor'] },
     { id: 'usuarios', label: 'Usuarios', icon: Users, roles: ['admin'] },
     { id: 'apariencia', label: 'Apariencia', icon: ImageIcon, roles: ['admin'] },
@@ -51,6 +78,79 @@ export function AdminPanel() {
     cargarDatos()
     cargarBanners()
   }, [])
+
+  // Filtrar y ordenar telas
+  useEffect(() => {
+    let filtradas = [...telas]
+
+    // Búsqueda por texto
+    if (busquedaTelas.trim() !== '') {
+      filtradas = filtradas.filter(tela =>
+        tela.nombre?.toLowerCase().includes(busquedaTelas.toLowerCase()) ||
+        tela.referencia?.toLowerCase().includes(busquedaTelas.toLowerCase()) ||
+        tela.item?.toLowerCase().includes(busquedaTelas.toLowerCase()) ||
+        tela.categorias?.nombre?.toLowerCase().includes(busquedaTelas.toLowerCase())
+      )
+    }
+
+    // Filtro por categoría
+    if (categoriaFiltro !== 'todos') {
+      filtradas = filtradas.filter(tela => tela.categoria_id === parseInt(categoriaFiltro))
+    }
+
+    // Filtro por peso
+    if (pesoFiltro !== 'todos') {
+      filtradas = filtradas.filter(tela => {
+        const pesoNum = parseFloat(tela.peso)
+        if (isNaN(pesoNum)) return false
+        switch(pesoFiltro) {
+          case '0-10': return pesoNum < 10
+          case '10-11': return pesoNum >= 10 && pesoNum < 11
+          case '11-12': return pesoNum >= 11 && pesoNum < 12
+          case '12-13': return pesoNum >= 12 && pesoNum < 13
+          case '13+': return pesoNum >= 13
+          default: return true
+        }
+      })
+    }
+
+    // Ordenamiento
+    filtradas.sort((a, b) => {
+      let valA, valB
+      switch(ordenPor) {
+        case 'nombre':
+          valA = a.nombre || ''
+          valB = b.nombre || ''
+          break
+        case 'referencia':
+          valA = a.referencia || ''
+          valB = b.referencia || ''
+          break
+        case 'categoria':
+          valA = a.categorias?.nombre || ''
+          valB = b.categorias?.nombre || ''
+          break
+        case 'peso':
+          valA = parseFloat(a.peso) || 0
+          valB = parseFloat(b.peso) || 0
+          break
+        case 'stock':
+          valA = a.stock || 0
+          valB = b.stock || 0
+          break
+        default:
+          valA = a.created_at || ''
+          valB = b.created_at || ''
+      }
+      if (ordenDir === 'asc') {
+        return valA > valB ? 1 : -1
+      } else {
+        return valA < valB ? 1 : -1
+      }
+    })
+
+    setTelasFiltradas(filtradas)
+  }, [busquedaTelas, categoriaFiltro, pesoFiltro, ordenPor, ordenDir, telas])
 
   // Si el tab activo ya no está disponible para el rol, resetear
   useEffect(() => {
@@ -67,6 +167,7 @@ export function AdminPanel() {
         colorService.obtenerTodos()
       ])
       setTelas(telasData)
+      setTelasFiltradas(telasData)
       setCategorias(categoriasData)
       setColores(coloresData)
     } catch {
@@ -89,15 +190,35 @@ export function AdminPanel() {
   }
 
   const handleEliminarTela = async (id) => {
-    if (!isAdmin) {
+    if (!isAdmin && !isEditor) {
       toast.error('No tienes permisos para eliminar telas')
       return
     }
-    if (confirm('¿Eliminar esta tela?')) {
-      await telaService.eliminar(id)
-      toast.success('Tela eliminada')
-      cargarDatos()
+    if (confirm('¿Eliminar esta tela? Esta acción no se puede deshacer.')) {
+      try {
+        await telaService.eliminar(id)
+        toast.success('Tela eliminada')
+        cargarDatos()
+      } catch (error) {
+        toast.error('Error al eliminar la tela')
+      }
     }
+  }
+
+  const handleOrdenar = (campo) => {
+    if (ordenPor === campo) {
+      setOrdenDir(ordenDir === 'asc' ? 'desc' : 'asc')
+    } else {
+      setOrdenPor(campo)
+      setOrdenDir('asc')
+    }
+  }
+
+  const limpiarFiltros = () => {
+    setBusquedaTelas('')
+    setCategoriaFiltro('todos')
+    setPesoFiltro('todos')
+    setMostrarFiltros(false)
   }
 
   const validarFormatoImagen = (file) => {
@@ -188,6 +309,8 @@ export function AdminPanel() {
     toast.success('Imágenes restauradas a las predeterminadas')
   }
 
+  const filtrosActivos = categoriaFiltro !== 'todos' || pesoFiltro !== 'todos' || busquedaTelas
+
   return (
     <div style={{ fontFamily: "'DM Sans', sans-serif", background: '#fff', color: '#1a2332' }}>
       <style>{`
@@ -202,13 +325,21 @@ export function AdminPanel() {
         .ynk-tab-btn.active { color:#c47d3e; border-bottom:2px solid #c47d3e; }
         .ynk-section-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; flex-wrap:wrap; gap:1rem; }
         .ynk-section-title { font-size:1.5rem; font-weight:600; color:#1a2332; }
+        .ynk-search-box { position:relative; flex:1; min-width:200px; }
+        .ynk-search-input { width:100%; padding:0.6rem 1rem 0.6rem 2.5rem; border:1.5px solid #e5dfd7; border-radius:40px; font-size:0.85rem; outline:none; transition:all 0.2s; }
+        .ynk-search-input:focus { border-color:#c47d3e; }
+        .ynk-search-icon { position:absolute; left:0.8rem; top:50%; transform:translateY(-50%); color:#9a8f84; }
+        .ynk-filtros-bar { display:flex; flex-wrap:wrap; gap:1rem; align-items:center; margin-bottom:1rem; }
+        .ynk-filtro-select { padding:0.5rem 1rem; border:1.5px solid #e5dfd7; border-radius:40px; font-size:0.85rem; background:white; cursor:pointer; outline:none; }
+        .ynk-filtro-select:focus { border-color:#c47d3e; }
         .ynk-btn-primary { background:#1a2332; color:white; padding:0.6rem 1.2rem; border-radius:40px; font-size:0.8rem; font-weight:600; border:none; cursor:pointer; transition:all 0.3s ease; display:flex; align-items:center; gap:0.5rem; }
         .ynk-btn-primary:hover { background:#c47d3e; transform:translateY(-2px); }
         .ynk-btn-primary:disabled { opacity:0.6; cursor:not-allowed; transform:none; }
         .ynk-btn-secondary { background:#f8f4ef; color:#1a2332; padding:0.6rem 1.2rem; border-radius:40px; font-size:0.8rem; font-weight:600; border:1px solid #e5dfd7; cursor:pointer; transition:all 0.3s ease; display:flex; align-items:center; gap:0.5rem; }
         .ynk-btn-secondary:hover { border-color:#c47d3e; color:#c47d3e; }
         .ynk-table { width:100%; background:white; border-radius:16px; overflow:hidden; border:1px solid #e5dfd7; }
-        .ynk-table th { text-align:left; padding:1rem; background:#f8f4ef; font-weight:600; color:#1a2332; border-bottom:1px solid #e5dfd7; }
+        .ynk-table th { text-align:left; padding:1rem; background:#f8f4ef; font-weight:600; color:#1a2332; border-bottom:1px solid #e5dfd7; cursor:pointer; user-select:none; }
+        .ynk-table th:hover { background:#ede8e2; }
         .ynk-table td { padding:1rem; border-bottom:1px solid #e5dfd7; color:#4b5563; }
         .ynk-table tr:hover { background:#f8f4ef; }
         .ynk-card { background:white; border-radius:20px; border:1px solid #e5dfd7; padding:1.5rem; }
@@ -216,9 +347,10 @@ export function AdminPanel() {
         .ynk-upload-area { border:2px dashed #e5dfd7; border-radius:12px; padding:2rem; text-align:center; cursor:pointer; transition:all 0.3s ease; }
         .ynk-upload-area:hover { border-color:#c47d3e; background:#f8f4ef; }
         .ynk-upload-area.disabled { opacity:0.6; cursor:not-allowed; }
+        .sort-indicator { display:inline-block; margin-left:0.25rem; font-size:0.7rem; }
         @keyframes spin { to { transform:rotate(360deg); } }
         .animate-spin { animation:spin 1s linear infinite; }
-        @media (max-width:768px) { .ynk-container { padding:0 1rem 2rem; } .ynk-admin-title { font-size:1.8rem; } .ynk-tab-btn { padding:0.5rem 1rem; font-size:0.8rem; } }
+        @media (max-width:768px) { .ynk-container { padding:0 1rem 2rem; } .ynk-admin-title { font-size:1.8rem; } .ynk-tab-btn { padding:0.5rem 1rem; font-size:0.8rem; } .ynk-table { font-size:0.8rem; } .ynk-table th, .ynk-table td { padding:0.75rem; } }
       `}</style>
 
       {/* Header */}
@@ -246,10 +378,7 @@ export function AdminPanel() {
                  profile?.role === 'editor' ? '● Editor' : '● Usuario'}
               </span>
             </div>
-            <button
-              onClick={logout}
-              style={{ background:'rgba(255,255,255,0.15)', border:'none', padding:'0.5rem 1rem', borderRadius:'40px', color:'white', cursor:'pointer', display:'flex', alignItems:'center', gap:'0.5rem', fontSize:'0.75rem', transition:'all 0.3s ease' }}
-            >
+            <button onClick={logout} style={{ background:'rgba(255,255,255,0.15)', border:'none', padding:'0.5rem 1rem', borderRadius:'40px', color:'white', cursor:'pointer', display:'flex', alignItems:'center', gap:'0.5rem', fontSize:'0.75rem', transition:'all 0.3s ease' }}>
               <LogOut size={14} /> Cerrar Sesión
             </button>
           </div>
@@ -257,16 +386,11 @@ export function AdminPanel() {
       </div>
 
       <div className="ynk-container">
-        {/* Tabs filtrados por rol */}
+        {/* Tabs */}
         <div className="ynk-tabs">
           {tabs.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => { setActiveTab(tab.id); setShowForm(false); setTelaEditando(null) }}
-              className={`ynk-tab-btn ${activeTab === tab.id ? 'active' : ''}`}
-            >
-              <tab.icon size={18} />
-              {tab.label}
+            <button key={tab.id} onClick={() => { setActiveTab(tab.id); setShowForm(false); setTelaEditando(null) }} className={`ynk-tab-btn ${activeTab === tab.id ? 'active' : ''}`}>
+              <tab.icon size={18} /> {tab.label}
             </button>
           ))}
         </div>
@@ -276,10 +400,7 @@ export function AdminPanel() {
           <div>
             <div className="ynk-section-header">
               <h2 className="ynk-section-title">Gestión de Telas</h2>
-              <button
-                onClick={() => { setShowForm(!showForm); setTelaEditando(null) }}
-                className="ynk-btn-primary"
-              >
+              <button onClick={() => { setShowForm(!showForm); setTelaEditando(null) }} className="ynk-btn-primary">
                 {showForm ? <X size={16} /> : <Upload size={16} />}
                 {showForm ? 'Cancelar' : '+ Nueva Tela'}
               </button>
@@ -297,54 +418,112 @@ export function AdminPanel() {
               </div>
             )}
 
-            <table className="ynk-table">
-              <thead>
-                <tr>
-                  <th>Tela</th>
-                  <th>Referencia</th>
-                  <th>Categoría</th>
-                  <th>Stock</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {telas.length === 0 ? (
-                  <tr><td colSpan="5" style={{ textAlign:'center', padding:'2rem', color:'#9a8f84' }}>No hay telas registradas</td></tr>
-                ) : (
-                  telas.map(tela => (
-                    <tr key={tela.id}>
-                      <td>{tela.nombre}</td>
-                      <td>{tela.referencia || 'N/A'}</td>
-                      <td>{tela.categorias?.nombre}</td>
-                      <td>{tela.stock} m</td>
-                      <td>
-                        <div style={{ display:'flex', gap:'0.5rem' }}>
-                          <button onClick={() => { setTelaEditando(tela); setShowForm(true) }} style={{ color:'#c47d3e', background:'none', border:'none', cursor:'pointer' }} title="Editar">
-                            <Edit size={16} />
-                          </button>
-                          {isAdmin && (
-                            <button onClick={() => handleEliminarTela(tela.id)} style={{ color:'#e74c3c', background:'none', border:'none', cursor:'pointer' }} title="Eliminar">
-                              <Trash2 size={16} />
-                            </button>
-                          )}
-                        </div>
+            {/* Barra de filtros */}
+            <div className="ynk-filtros-bar">
+              <div className="ynk-search-box" style={{ flex: 2 }}>
+                <Search size={16} className="ynk-search-icon" />
+                <input
+                  type="text"
+                  placeholder="Buscar por nombre, referencia o categoría..."
+                  value={busquedaTelas}
+                  onChange={(e) => setBusquedaTelas(e.target.value)}
+                  className="ynk-search-input"
+                />
+              </div>
+              
+              <select value={categoriaFiltro} onChange={(e) => setCategoriaFiltro(e.target.value)} className="ynk-filtro-select">
+                <option value="todos">Todas las categorías</option>
+                {categorias.map(cat => <option key={cat.id} value={cat.id}>{cat.nombre}</option>)}
+              </select>
+              
+              <select value={pesoFiltro} onChange={(e) => setPesoFiltro(e.target.value)} className="ynk-filtro-select">
+                {opcionesPeso.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+              </select>
+              
+              <select value={ordenPor} onChange={(e) => setOrdenPor(e.target.value)} className="ynk-filtro-select">
+                {opcionesOrden.map(opt => <option key={opt.value} value={opt.value}>Ordenar por: {opt.label}</option>)}
+              </select>
+              
+              {filtrosActivos && (
+                <button onClick={limpiarFiltros} className="ynk-btn-secondary" style={{ padding: '0.5rem 1rem' }}>
+                  <X size={14} /> Limpiar filtros
+                </button>
+              )}
+            </div>
+
+            {/* Tabla de telas */}
+            <div className="overflow-x-auto">
+              <table className="ynk-table">
+                <thead>
+                  <tr>
+                    <th onClick={() => handleOrdenar('nombre')}>
+                      Tela {ordenPor === 'nombre' && <span className="sort-indicator">{ordenDir === 'asc' ? '↑' : '↓'}</span>}
+                    </th>
+                    <th onClick={() => handleOrdenar('referencia')}>
+                      Referencia {ordenPor === 'referencia' && <span className="sort-indicator">{ordenDir === 'asc' ? '↑' : '↓'}</span>}
+                    </th>
+                    <th onClick={() => handleOrdenar('categoria')}>
+                      Categoría {ordenPor === 'categoria' && <span className="sort-indicator">{ordenDir === 'asc' ? '↑' : '↓'}</span>}
+                    </th>
+                    <th onClick={() => handleOrdenar('peso')}>
+                      Peso {ordenPor === 'peso' && <span className="sort-indicator">{ordenDir === 'asc' ? '↑' : '↓'}</span>}
+                    </th>
+                    <th onClick={() => handleOrdenar('stock')}>
+                      Stock {ordenPor === 'stock' && <span className="sort-indicator">{ordenDir === 'asc' ? '↑' : '↓'}</span>}
+                    </th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {telasFiltradas.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" style={{ textAlign:'center', padding:'2rem', color:'#9a8f84' }}>
+                        {filtrosActivos ? 'No se encontraron telas con esos filtros' : 'No hay telas registradas'}
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    telasFiltradas.map(tela => (
+                      <tr key={tela.id}>
+                        <td style={{ maxWidth: '250px' }}>{tela.nombre}</td>
+                        <td>{tela.referencia || 'N/A'}</td>
+                        <td>{tela.categorias?.nombre}</td>
+                        <td>{tela.peso || 'N/A'}</td>
+                        <td>{tela.stock || 0} m</td>
+                        <td>
+                          <div style={{ display:'flex', gap:'0.5rem' }}>
+                            <button onClick={() => { setTelaEditando(tela); setShowForm(true) }} style={{ color:'#c47d3e', background:'none', border:'none', cursor:'pointer' }} title="Editar">
+                              <Edit size={16} />
+                            </button>
+                            {(isAdmin || isEditor) && (
+                              <button onClick={() => handleEliminarTela(tela.id)} style={{ color:'#e74c3c', background:'none', border:'none', cursor:'pointer' }} title="Eliminar">
+                                <Trash2 size={16} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+            
+            {/* Mostrar cantidad de resultados */}
+            {telasFiltradas.length > 0 && telasFiltradas.length !== telas.length && (
+              <div style={{ marginTop: '1rem', fontSize: '0.8rem', color: '#9a8f84', textAlign: 'center' }}>
+                Mostrando {telasFiltradas.length} de {telas.length} telas
+              </div>
+            )}
           </div>
         )}
 
-        {/* ── CATEGORÍAS (admin y editor) ── */}
-        {activeTab === 'categorias' && (isAdmin || isEditor) && (
+        {/* ── CATEGORÍAS (solo admin) ── */}
+        {activeTab === 'categorias' && isAdmin && (
           <AdminCategorias
             categorias={categorias}
             onCategoriaCreada={cargarDatos}
             onCategoriaActualizada={cargarDatos}
             onCategoriaEliminada={cargarDatos}
-            readOnly={!isAdmin}
           />
         )}
 
@@ -370,13 +549,8 @@ export function AdminPanel() {
             <div className="ynk-section-header">
               <h2 className="ynk-section-title">Personalización del Sitio</h2>
               <div style={{ display:'flex', gap:'0.75rem' }}>
-                <button onClick={resetToDefault} className="ynk-btn-secondary">
-                  Restaurar predeterminadas
-                </button>
-                <button onClick={saveImages} disabled={saving} className="ynk-btn-primary">
-                  <Save size={16} />
-                  {saving ? 'Guardando...' : 'Guardar para todos'}
-                </button>
+                <button onClick={resetToDefault} className="ynk-btn-secondary">Restaurar predeterminadas</button>
+                <button onClick={saveImages} disabled={saving} className="ynk-btn-primary"><Save size={16} /> {saving ? 'Guardando...' : 'Guardar para todos'}</button>
               </div>
             </div>
 
@@ -397,10 +571,7 @@ export function AdminPanel() {
                   <label className={`ynk-upload-area block ${uploading.home ? 'disabled' : ''}`} style={{ display:'block' }}>
                     <input type="file" accept={FORMATOS_SOPORTADOS.join(',')} onChange={(e) => handleImageUpload(e, 'home')} style={{ display:'none' }} disabled={uploading.home} />
                     {uploading.home ? (
-                      <div style={{ textAlign:'center' }}>
-                        <div className="animate-spin" style={{ width:'32px', height:'32px', border:'2px solid transparent', borderBottomColor:'#c47d3e', borderRadius:'50%', margin:'0 auto 0.5rem' }}></div>
-                        <p style={{ color:'#6b7280', fontSize:'0.85rem' }}>Procesando...</p>
-                      </div>
+                      <div style={{ textAlign:'center' }}><div className="animate-spin" style={{ width:'32px', height:'32px', border:'2px solid transparent', borderBottomColor:'#c47d3e', borderRadius:'50%', margin:'0 auto 0.5rem' }}></div><p style={{ color:'#6b7280', fontSize:'0.85rem' }}>Procesando...</p></div>
                     ) : (
                       <>
                         <Upload size={24} style={{ margin:'0 auto 0.5rem', display:'block', color:'#c47d3e' }} />
@@ -421,10 +592,7 @@ export function AdminPanel() {
                   <label className={`ynk-upload-area block ${uploading.catalogo ? 'disabled' : ''}`} style={{ display:'block' }}>
                     <input type="file" accept={FORMATOS_SOPORTADOS.join(',')} onChange={(e) => handleImageUpload(e, 'catalogo')} style={{ display:'none' }} disabled={uploading.catalogo} />
                     {uploading.catalogo ? (
-                      <div style={{ textAlign:'center' }}>
-                        <div className="animate-spin" style={{ width:'32px', height:'32px', border:'2px solid transparent', borderBottomColor:'#c47d3e', borderRadius:'50%', margin:'0 auto 0.5rem' }}></div>
-                        <p style={{ color:'#6b7280', fontSize:'0.85rem' }}>Procesando...</p>
-                      </div>
+                      <div style={{ textAlign:'center' }}><div className="animate-spin" style={{ width:'32px', height:'32px', border:'2px solid transparent', borderBottomColor:'#c47d3e', borderRadius:'50%', margin:'0 auto 0.5rem' }}></div><p style={{ color:'#6b7280', fontSize:'0.85rem' }}>Procesando...</p></div>
                     ) : (
                       <>
                         <Upload size={24} style={{ margin:'0 auto 0.5rem', display:'block', color:'#c47d3e' }} />
@@ -441,7 +609,7 @@ export function AdminPanel() {
               <AlertCircle size={18} style={{ color:'#c47d3e', flexShrink:0, marginTop:'2px' }} />
               <div style={{ fontSize:'0.82rem', color:'#6b7280' }}>
                 <p style={{ fontWeight:600, marginBottom:'0.3rem' }}>Importante:</p>
-                <p>Los banners se guardan en la base de datos y son visibles para <strong>todos los usuarios</strong> inmediatamente. Las imágenes se almacenan como Base64 (máx 5MB recomendado para rendimiento).</p>
+                <p>Los banners se guardan en la base de datos y son visibles para <strong>todos los usuarios</strong> inmediatamente.</p>
               </div>
             </div>
           </div>
