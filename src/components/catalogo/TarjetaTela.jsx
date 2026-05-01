@@ -1,7 +1,27 @@
-import React from 'react'
+import React, { useState } from 'react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 export function TarjetaTela({ tela, onClick }) {
-  const imagenPrincipal = tela.imagenes_tela?.find(img => img.es_principal) || tela.imagenes_tela?.[0]
+  const [imagenActual, setImagenActual] = useState(0)
+  
+  const todasLasImagenes = tela.imagenes_tela || []
+  const tieneMultiplesImagenes = todasLasImagenes.length > 1
+  
+  const siguienteImagen = (e) => {
+    e.stopPropagation()
+    if (todasLasImagenes.length > 0) {
+      setImagenActual((prev) => (prev + 1) % todasLasImagenes.length)
+    }
+  }
+  
+  const anteriorImagen = (e) => {
+    e.stopPropagation()
+    if (todasLasImagenes.length > 0) {
+      setImagenActual((prev) => (prev - 1 + todasLasImagenes.length) % todasLasImagenes.length)
+    }
+  }
+  
+  const imagenActualUrl = todasLasImagenes[imagenActual]?.imagen_url || null
   
   return (
     <div 
@@ -26,26 +46,109 @@ export function TarjetaTela({ tela, onClick }) {
         e.currentTarget.style.borderColor = '#e5dfd7'
       }}
     >
-      {/* Imagen */}
+      {/* Imagen con slider */}
       <div style={{ 
         position: 'relative',
         height: '240px', 
         overflow: 'hidden',
         background: '#f5f5f0'
       }}>
-        {imagenPrincipal ? (
-          <img 
-            src={imagenPrincipal.imagen_url} 
-            alt={tela.nombre}
-            style={{ 
-              width: '100%', 
-              height: '100%', 
-              objectFit: 'cover',
-              transition: 'transform 0.5s ease'
-            }}
-            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
-            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
-          />
+        {imagenActualUrl ? (
+          <>
+            <img 
+              src={imagenActualUrl} 
+              alt={tela.nombre}
+              style={{ 
+                width: '100%', 
+                height: '100%', 
+                objectFit: 'cover',
+                transition: 'transform 0.5s ease'
+              }}
+              onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+              onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+            />
+            
+            {/* Indicador de múltiples imágenes */}
+            {tieneMultiplesImagenes && (
+              <div style={{
+                position: 'absolute',
+                bottom: '8px',
+                left: 0,
+                right: 0,
+                display: 'flex',
+                justifyContent: 'center',
+                gap: '6px',
+                zIndex: 2
+              }}>
+                {todasLasImagenes.map((_, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      width: idx === imagenActual ? '20px' : '6px',
+                      height: '6px',
+                      borderRadius: '3px',
+                      background: idx === imagenActual ? '#c47d3e' : 'rgba(255,255,255,0.6)',
+                      transition: 'all 0.3s ease'
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+            
+            {/* Botones de navegación */}
+            {tieneMultiplesImagenes && (
+              <>
+                <button
+                  onClick={anteriorImagen}
+                  style={{
+                    position: 'absolute',
+                    left: '8px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'rgba(0,0,0,0.5)',
+                    backdropFilter: 'blur(4px)',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '32px',
+                    height: '32px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: 'white',
+                    transition: 'all 0.3s ease',
+                    zIndex: 2
+                  }}
+                >
+                  <ChevronLeft size={18} />
+                </button>
+                <button
+                  onClick={siguienteImagen}
+                  style={{
+                    position: 'absolute',
+                    right: '8px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'rgba(0,0,0,0.5)',
+                    backdropFilter: 'blur(4px)',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '32px',
+                    height: '32px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: 'white',
+                    transition: 'all 0.3s ease',
+                    zIndex: 2
+                  }}
+                >
+                  <ChevronRight size={18} />
+                </button>
+              </>
+            )}
+          </>
         ) : (
           <div style={{ 
             display: 'flex', 
@@ -57,6 +160,8 @@ export function TarjetaTela({ tela, onClick }) {
             Sin imagen
           </div>
         )}
+        
+        {/* Badge de destacado */}
         {tela.destacado && (
           <span style={{
             position: 'absolute',
@@ -67,24 +172,47 @@ export function TarjetaTela({ tela, onClick }) {
             fontSize: '0.7rem',
             padding: '0.25rem 0.75rem',
             borderRadius: '20px',
-            fontWeight: '600'
+            fontWeight: '600',
+            zIndex: 2
           }}>
             Destacado
+          </span>
+        )}
+        
+        {/* Contador de imágenes */}
+        {tieneMultiplesImagenes && (
+          <span style={{
+            position: 'absolute',
+            top: '12px',
+            right: '12px',
+            background: 'rgba(0,0,0,0.6)',
+            backdropFilter: 'blur(4px)',
+            color: 'white',
+            fontSize: '0.65rem',
+            padding: '0.2rem 0.5rem',
+            borderRadius: '12px',
+            fontWeight: '500',
+            zIndex: 2
+          }}>
+            {imagenActual + 1} / {todasLasImagenes.length}
           </span>
         )}
       </div>
       
       {/* Contenido */}
       <div style={{ padding: '1rem' }}>
+        {/* Referencia - MODIFICADA: más negrilla y más grande */}
         <div style={{ 
-          fontSize: '0.7rem', 
-          color: '#9a8f84', 
-          marginBottom: '0.25rem',
-          letterSpacing: '0.05em'
+          fontSize: '0.85rem', 
+          fontWeight: '700',
+          color: '#c47d3e', 
+          marginBottom: '0.5rem',
+          letterSpacing: '0.03em'
         }}>
           {tela.referencia || 'REF: N/A'}
         </div>
         
+        {/* Nombre - como título */}
         <h3 style={{ 
           fontSize: '1rem', 
           fontWeight: '700', 
@@ -133,6 +261,25 @@ export function TarjetaTela({ tela, onClick }) {
                 +{tela.tela_colores.length - 6}
               </span>
             )}
+          </div>
+        )}
+        
+        {/* Stock */}
+        {tela.stock > 0 && (
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'flex-start',
+            marginTop: '0.5rem'
+          }}>
+            <span style={{ 
+              fontSize: '0.65rem', 
+              color: '#3e5f73',
+              background: '#e8f0f5',
+              padding: '0.2rem 0.6rem',
+              borderRadius: '12px'
+            }}>
+              Stock: {tela.stock} m
+            </span>
           </div>
         )}
       </div>

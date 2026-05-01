@@ -30,7 +30,7 @@ export const categoriaService = {
   },
 
   async eliminar(id) {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('categorias')
       .delete()
       .eq('id', id)
@@ -69,7 +69,7 @@ export const colorService = {
   },
 
   async eliminar(id) {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('colores')
       .delete()
       .eq('id', id)
@@ -84,8 +84,8 @@ export const telaService = {
       .from('telas')
       .select(`
         *,
-        categorias(nombre),
-        imagenes_tela(imagen_url, es_principal, orden),
+        categorias(id, nombre),
+        imagenes_tela(id, imagen_url, es_principal, orden),
         tela_colores(
           colores(id, nombre, codigo_hex)
         )
@@ -115,7 +115,7 @@ export const telaService = {
   },
 
   async eliminar(id) {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('telas')
       .delete()
       .eq('id', id)
@@ -124,12 +124,15 @@ export const telaService = {
   },
 
   async subirImagen(archivo, carpeta = 'telas') {
-    const nombreArchivo = `${Date.now()}_${archivo.name}`
+    const nombreArchivo = `${Date.now()}_${archivo.name.replace(/[^a-zA-Z0-9.]/g, '_')}`
     const ruta = `${carpeta}/${nombreArchivo}`
     
     const { data, error } = await supabase.storage
       .from('imagenes')
-      .upload(ruta, archivo)
+      .upload(ruta, archivo, {
+        cacheControl: '3600',
+        upsert: false
+      })
     
     if (error) throw error
     
@@ -168,6 +171,62 @@ export const telaService = {
       .from('tela_colores')
       .delete()
       .eq('tela_id', telaId)
+    if (error) throw error
+    return true
+  },
+
+  async eliminarImagen(imagenId) {
+    if (!imagenId) {
+      throw new Error('ID de imagen no válido')
+    }
+    
+    // 1. Obtener la URL de la imagen para eliminarla del storage
+    const { data: imagen, error: getError } = await supabase
+      .from('imagenes_tela')
+      .select('imagen_url')
+      .eq('id', imagenId)
+      .single()
+    
+    if (getError) {
+      console.error('Error al obtener imagen:', getError)
+      // Continuamos para intentar eliminar el registro aunque falle obtener la URL
+    }
+    
+    // 2. Eliminar el registro de la base de datos
+    const { error: deleteError } = await supabase
+      .from('imagenes_tela')
+      .delete()
+      .eq('id', imagenId)
+    
+    if (deleteError) throw deleteError
+    
+    // 3. Intentar eliminar el archivo del storage (opcional, no crítico)
+    if (imagen?.imagen_url) {
+      try {
+        // Extraer la ruta del storage desde la URL
+        const urlParts = imagen.imagen_url.split('/')
+        const filePath = urlParts.slice(urlParts.indexOf('imagenes') + 1).join('/')
+        if (filePath) {
+          await supabase.storage.from('imagenes').remove([filePath])
+        }
+      } catch (storageError) {
+        console.warn('No se pudo eliminar del storage:', storageError)
+      }
+    }
+    
+    return true
+  },
+
+  async actualizarImagen(imagenId, esPrincipal) {
+    if (!imagenId) {
+      throw new Error('ID de imagen no válido')
+    }
+    
+    const { error } = await supabase
+      .from('imagenes_tela')
+      .update({ es_principal: esPrincipal })
+      .eq('id', imagenId)
+    
     if (error) throw error
     return true
   }

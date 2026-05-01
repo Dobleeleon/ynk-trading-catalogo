@@ -5,6 +5,7 @@ import { getSiteSetting } from '../services/supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { TarjetaTela } from '../components/catalogo/TarjetaTela'
 import { CatalogoEditorFashion } from '../components/CatalogoEditorFashion'
+import { DetalleTelaModal } from '../components/catalogo/DetalleTelaModal'
 import { Modal } from '../components/ui/Modal'
 import toast from 'react-hot-toast'
 
@@ -441,81 +442,12 @@ export function Catalogo() {
       </footer>
 
       {/* Modal detalle de tela - sin precio ni cotización */}
-      <Modal isOpen={!!telaSeleccionada} onClose={() => setTelaSeleccionada(null)} title={telaSeleccionada?.referencia || telaSeleccionada?.nombre}>
-        {telaSeleccionada && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
-            <div>
-              {telaSeleccionada.imagenes_tela?.find(img => img.es_principal) && (
-                <img
-                  src={telaSeleccionada.imagenes_tela.find(img => img.es_principal).imagen_url}
-                  alt={telaSeleccionada.nombre}
-                  style={{ width: '100%', borderRadius: '12px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', marginBottom: '0.75rem' }}
-                />
-              )}
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                {telaSeleccionada.imagenes_tela?.filter(img => !img.es_principal).slice(0, 3).map(img => (
-                  <img key={img.id} src={img.imagen_url} alt="" style={{ width: '72px', height: '72px', objectFit: 'cover', borderRadius: '8px', cursor: 'pointer', opacity: 0.85, transition: 'opacity 0.2s' }}
-                    onMouseEnter={e => e.target.style.opacity = 1}
-                    onMouseLeave={e => e.target.style.opacity = 0.85}
-                  />
-                ))}
-              </div>
-            </div>
-            <div>
-              <p style={{ fontSize: '0.8rem', color: '#9a8f84', marginBottom: '0.25rem' }}>Referencia: {telaSeleccionada.referencia || 'N/A'}</p>
-              <p style={{ fontSize: '0.8rem', color: '#9a8f84', marginBottom: '0.75rem' }}>Item: {telaSeleccionada.item || 'N/A'}</p>
-              <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1a2332', marginBottom: '0.75rem', fontFamily: "'Playfair Display', serif" }}>
-                {telaSeleccionada.nombre}
-              </h2>
-              <p style={{ color: '#6b7280', lineHeight: 1.7, marginBottom: '1.25rem', fontSize: '0.9rem' }}>
-                {telaSeleccionada.descripcion || 'Sin descripción'}
-              </p>
 
-              <div style={{ background: '#f8f4ef', borderRadius: '14px', padding: '1rem', marginBottom: '1rem' }}>
-                <h3 style={{ fontWeight: 600, color: '#1a2332', marginBottom: '0.75rem', fontSize: '0.9rem' }}>Especificaciones Técnicas</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', fontSize: '0.85rem' }}>
-                  {[
-                    ['Composición', telaSeleccionada.composicion],
-                    ['Peso', telaSeleccionada.peso],
-                    ['Ancho', telaSeleccionada.ancho],
-                    ['Espec. Técnica', telaSeleccionada.espec_tec]
-                  ].map(([label, val]) => (
-                    <div key={label}>
-                      <span style={{ color: '#9a8f84', display: 'block' }}>{label}</span>
-                      <p style={{ fontWeight: 600, color: '#1a2332' }}>{val || 'N/A'}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {telaSeleccionada.tela_colores?.length > 0 && (
-                <div style={{ marginBottom: '1rem' }}>
-                  <h3 style={{ fontWeight: 600, color: '#1a2332', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Colores disponibles</h3>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    {telaSeleccionada.tela_colores.map(tc => (
-                      <div key={tc.colores.id} title={tc.colores.nombre}
-                        style={{ width: '36px', height: '36px', borderRadius: '50%', background: tc.colores.codigo_hex, border: '2px solid white', boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <button style={{
-                width: '100%', background: '#1a2332', color: 'white',
-                padding: '0.9rem', borderRadius: '40px', border: 'none',
-                fontWeight: 600, cursor: 'pointer', fontSize: '0.9rem',
-                transition: 'all 0.3s'
-              }}
-                onMouseEnter={e => e.target.style.background = '#c47d3e'}
-                onMouseLeave={e => e.target.style.background = '#1a2332'}
-              >
-                Ver detalles
-              </button>
-            </div>
-          </div>
-        )}
-      </Modal>
+<Modal isOpen={!!telaSeleccionada} onClose={() => setTelaSeleccionada(null)}>
+  {telaSeleccionada && (
+    <DetalleTelaModal tela={telaSeleccionada} onClose={() => setTelaSeleccionada(null)} />
+  )}
+</Modal>
 
       {/* Editor de catálogo fashion */}
       {showEditor && (
