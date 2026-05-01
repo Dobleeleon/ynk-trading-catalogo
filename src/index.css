@@ -1,0 +1,172 @@
+@import "tailwindcss";
+
+/* Nueva Paleta de Colores */
+@theme {
+  --color-primary: #1F2A35;      /* Azul gris oscuro - Header/Footer */
+  --color-secondary: #3E5F73;    /* Azul acero - Secciones/Cards */
+  --color-accent: #FF5A3C;       /* Naranja coral - CTAs/Botones */
+  --color-bg-light: #FAF2EF;     /* Blanco cálido - Background principal */
+  --color-border: #E6E6E6;       /* Gris claro - Bordes */
+  --color-text-secondary: #6B7280; /* Gris oscuro - Texto secundario */
+}
+
+/* Estilos base */
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  background-color: #FAF2EF;
+  color: #1F2A35;
+  margin: 0;
+  padding: 0;
+}
+
+/* Títulos */
+h1, h2, h3, h4, .font-serif {
+  font-family: 'Cormorant Garamond', 'Times New Roman', serif;
+  color: #1F2A35;
+}
+
+/* Botón primario - Naranja coral */
+.btn-primary {
+  background-color: #FF5A3C;
+  color: white;
+  padding: 0.75rem 1.75rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-primary:hover {
+  background-color: #E04A31;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 90, 60, 0.3);
+}
+
+/* Botón secundario - Azul acero */
+.btn-secondary {
+  background-color: #3E5F73;
+  color: white;
+  padding: 0.75rem 1.75rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-secondary:hover {
+  background-color: #2F4A5B;
+  transform: translateY(-2px);
+}
+
+/* Botón outline */
+.btn-outline {
+  background-color: transparent;
+  color: #3E5F73;
+  padding: 0.75rem 1.75rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border: 1px solid #3E5F73;
+}
+
+.btn-outline:hover {
+  background-color: rgba(62, 95, 115, 0.1);
+  transform: translateY(-2px);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #E6E6E6;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #3E5F73;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #1F2A35;
+}
+
+/* Utilidades */
+.text-gradient {
+  background: linear-gradient(135deg, #1F2A35 0%, #3E5F73 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.text-secondary {
+  color: #6B7280;
+}
+
+.border-custom {
+  border-color: #E6E6E6;
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeInUp {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
