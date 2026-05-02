@@ -1,22 +1,27 @@
 import React, { useState } from 'react'
-import { Filter, X, Weight, Tag, Palette } from 'lucide-react'
+import { Filter, X, Tag, Palette, ArrowUpDown } from 'lucide-react'
 
-export function Filtros({ categorias, colores, filtros, onFiltroChange, onLimpiarFiltros }) {
+export function Filtros({ categorias, colores, filtros, onFiltroChange, onLimpiarFiltros, ordenPor, ordenDir, onOrdenar }) {
   const [showFilters, setShowFilters] = useState(false)
-  
-  // Opciones de peso
-  const opcionesPeso = [
-    { label: 'Todos', value: 'todos' },
-    { label: 'Menos de 10 oz', value: '0-10' },
-    { label: '10 - 11 oz', value: '10-11' },
-    { label: '11 - 12 oz', value: '11-12' },
-    { label: '12 - 13 oz', value: '12-13' },
-    { label: 'Más de 13 oz', value: '13+' }
+
+  // Opciones de ordenamiento
+  const opcionesOrden = [
+    { label: 'Nombre', value: 'nombre' },
+    { label: 'Referencia', value: 'referencia' },
+    { label: 'Peso', value: 'peso' }
   ]
   
   const filtrosActivos = filtros.categoriaId !== 'todos' || 
-                         filtros.colorId || 
-                         (filtros.pesoRange && filtros.pesoRange !== 'todos')
+                         filtros.colorId !== null || 
+                         ordenPor !== 'nombre'
+
+  const handleOrdenClick = (value) => {
+    if (ordenPor === value) {
+      onOrdenar(value, ordenDir === 'asc' ? 'desc' : 'asc')
+    } else {
+      onOrdenar(value, 'asc')
+    }
+  }
   
   return (
     <div className="bg-white rounded-xl shadow-md p-4">
@@ -27,7 +32,7 @@ export function Filtros({ categorias, colores, filtros, onFiltroChange, onLimpia
       >
         <span className="flex items-center gap-2">
           <Filter size={20} />
-          Filtros
+          Filtros y Orden
           {filtrosActivos && (
             <span className="bg-[#c47d3e] text-white text-xs rounded-full px-2 py-0.5">
               Activos
@@ -50,7 +55,7 @@ export function Filtros({ categorias, colores, filtros, onFiltroChange, onLimpia
               className="text-sm text-[#c47d3e] hover:text-[#a0642e] flex items-center gap-1 transition-colors"
             >
               <X size={14} />
-              Limpiar filtros
+              Limpiar todo
             </button>
           </div>
         )}
@@ -112,24 +117,27 @@ export function Filtros({ categorias, colores, filtros, onFiltroChange, onLimpia
           </div>
         </div>
         
-        {/* Filtro por Peso */}
+        {/* Ordenamiento */}
         <div>
           <h4 className="font-semibold text-[#1a2332] mb-3 flex items-center gap-2">
-            <Weight size={16} className="text-[#c47d3e]" />
-            Peso (oz)
+            <ArrowUpDown size={16} className="text-[#c47d3e]" />
+            Ordenar por
           </h4>
-          <div className="grid grid-cols-2 gap-2">
-            {opcionesPeso.map(opcion => (
+          <div className="space-y-2">
+            {opcionesOrden.map(opcion => (
               <button
                 key={opcion.value}
-                onClick={() => onFiltroChange('pesoRange', opcion.value)}
-                className={`px-3 py-1.5 rounded-lg text-sm transition-all ${
-                  filtros.pesoRange === opcion.value
+                onClick={() => handleOrdenClick(opcion.value)}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all ${
+                  ordenPor === opcion.value
                     ? 'bg-[#c47d3e] text-white'
                     : 'bg-gray-100 text-[#6b7280] hover:bg-gray-200'
                 }`}
               >
-                {opcion.label}
+                <span>{opcion.label}</span>
+                {ordenPor === opcion.value && (
+                  <span>{ordenDir === 'asc' ? '↑ Ascendente' : '↓ Descendente'}</span>
+                )}
               </button>
             ))}
           </div>
@@ -139,7 +147,7 @@ export function Filtros({ categorias, colores, filtros, onFiltroChange, onLimpia
         {filtrosActivos && (
           <div className="pt-4 border-t border-[#e5dfd7]">
             <p className="text-xs text-[#9a8f84] text-center">
-              Filtros activos aplicados
+              Filtros y ordenamiento activos
             </p>
           </div>
         )}

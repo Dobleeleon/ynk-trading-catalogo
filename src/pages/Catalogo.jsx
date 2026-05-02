@@ -21,10 +21,7 @@ export function Catalogo() {
   const [telasFiltradas, setTelasFiltradas] = useState([])
   const [filtros, setFiltros] = useState({
     categoriaId: 'todos',
-    colorId: null,
-    pesoMin: null,
-    pesoMax: null,
-    pesoRange: 'todos'
+    colorId: null
   })
   const [busqueda, setBusqueda] = useState('')
   const [vista, setVista] = useState('grid')
@@ -33,6 +30,10 @@ export function Catalogo() {
   const [mostrarFiltros, setMostrarFiltros] = useState(false)
   const [showEditor, setShowEditor] = useState(false)
   const [bannerImage, setBannerImage] = useState(DEFAULT_BANNER)
+  
+  // Estado para ordenamiento
+  const [ordenPor, setOrdenPor] = useState('nombre')
+  const [ordenDir, setOrdenDir] = useState('asc')
 
   // Cargar banner desde Supabase
   useEffect(() => {
@@ -55,8 +56,8 @@ export function Catalogo() {
   }, [])
 
   useEffect(() => {
-    aplicarFiltros()
-  }, [filtros, busqueda, telas])
+    aplicarFiltrosYOrdenar()
+  }, [filtros, busqueda, telas, ordenPor, ordenDir])
 
   useEffect(() => {
     if (showEditor) {
@@ -86,7 +87,7 @@ export function Catalogo() {
     }
   }
 
-  const aplicarFiltros = () => {
+  const aplicarFiltrosYOrdenar = () => {
     let filtradas = [...telas]
 
     // Búsqueda por texto
@@ -110,77 +111,59 @@ export function Catalogo() {
       )
     }
 
-    // Filtro por peso
-    if (filtros.pesoMin !== null && filtros.pesoMin !== undefined && filtros.pesoMin !== '') {
-      filtradas = filtradas.filter(t => {
-        const pesoNum = parseFloat(t.peso)
-        return !isNaN(pesoNum) && pesoNum >= filtros.pesoMin
-      })
-    }
-    if (filtros.pesoMax !== null && filtros.pesoMax !== undefined && filtros.pesoMax !== '') {
-      filtradas = filtradas.filter(t => {
-        const pesoNum = parseFloat(t.peso)
-        return !isNaN(pesoNum) && pesoNum <= filtros.pesoMax
-      })
-    }
+    // Ordenamiento
+    filtradas.sort((a, b) => {
+      let valA, valB
+      switch(ordenPor) {
+        case 'nombre':
+          valA = a.nombre || ''
+          valB = b.nombre || ''
+          break
+        case 'referencia':
+          valA = a.referencia || ''
+          valB = b.referencia || ''
+          break
+        case 'peso':
+          valA = parseFloat(a.peso) || 0
+          valB = parseFloat(b.peso) || 0
+          break
+        default:
+          valA = a.nombre || ''
+          valB = b.nombre || ''
+      }
+      if (ordenDir === 'asc') {
+        return valA > valB ? 1 : -1
+      } else {
+        return valA < valB ? 1 : -1
+      }
+    })
 
     setTelasFiltradas(filtradas)
   }
 
   const handleFiltroChange = (key, value) => {
-    if (key === 'pesoRange') {
-      let pesoMin = null, pesoMax = null
-      switch(value) {
-        case '0-10':
-          pesoMin = 0
-          pesoMax = 10
-          break
-        case '10-11':
-          pesoMin = 10
-          pesoMax = 11
-          break
-        case '11-12':
-          pesoMin = 11
-          pesoMax = 12
-          break
-        case '12-13':
-          pesoMin = 12
-          pesoMax = 13
-          break
-        case '13+':
-          pesoMin = 13
-          pesoMax = null
-          break
-        default:
-          pesoMin = null
-          pesoMax = null
-      }
-      setFiltros(prev => ({
-        ...prev,
-        pesoRange: value,
-        pesoMin: pesoMin,
-        pesoMax: pesoMax
-      }))
-    } else {
-      setFiltros(prev => ({ ...prev, [key]: value }))
-    }
+    setFiltros(prev => ({ ...prev, [key]: value }))
+  }
+
+  const handleOrdenar = (campo, direccion) => {
+    setOrdenPor(campo)
+    setOrdenDir(direccion)
   }
 
   const handleLimpiarFiltros = () => {
     setFiltros({
       categoriaId: 'todos',
-      colorId: null,
-      pesoMin: null,
-      pesoMax: null,
-      pesoRange: 'todos'
+      colorId: null
     })
     setBusqueda('')
     setMostrarFiltros(false)
+    setOrdenPor('nombre')
+    setOrdenDir('asc')
   }
 
   const filtrosActivos = filtros.categoriaId !== 'todos' || 
                          filtros.colorId !== null || 
-                         filtros.pesoRange !== 'todos'
+                         ordenPor !== 'nombre'
 
   if (bannerLoading || cargando) {
     return (
@@ -351,7 +334,7 @@ export function Catalogo() {
                 className={`ynk-btn-outline ${mostrarFiltros || filtrosActivos ? 'active' : ''}`}
               >
                 <Filter size={16} />
-                Filtros
+                Filtros y Orden
                 {filtrosActivos && (
                   <span style={{ background: 'rgba(255,255,255,0.3)', color: 'white', fontSize: '0.7rem', borderRadius: '40px', padding: '0.1rem 0.5rem', marginLeft: '0.25rem' }}>
                     activos
@@ -393,7 +376,7 @@ export function Catalogo() {
             </div>
           </div>
 
-          {/* Panel de filtros */}
+          {/* Panel de filtros con ordenamiento */}
           {mostrarFiltros && (
             <div className="ynk-filtros-panel">
               <Filtros
@@ -402,6 +385,9 @@ export function Catalogo() {
                 filtros={filtros}
                 onFiltroChange={handleFiltroChange}
                 onLimpiarFiltros={handleLimpiarFiltros}
+                ordenPor={ordenPor}
+                ordenDir={ordenDir}
+                onOrdenar={handleOrdenar}
               />
             </div>
           )}
@@ -411,6 +397,11 @@ export function Catalogo() {
             <Sparkles size={16} style={{ color: '#c47d3e', animation: 'sparkle 1.5s ease infinite' }} />
             <span style={{ fontWeight: 700, color: '#c47d3e', fontSize: '1.2rem' }}>{telasFiltradas.length}</span>
             telas encontradas
+            {ordenPor !== 'nombre' && (
+              <span style={{ fontSize: '0.75rem', color: '#9a8f84', marginLeft: '0.5rem' }}>
+                (ordenado por {ordenPor} {ordenDir === 'asc' ? 'ascendente' : 'descendente'})
+              </span>
+            )}
           </div>
 
           {/* Grid de telas */}
