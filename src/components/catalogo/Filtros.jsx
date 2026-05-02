@@ -1,10 +1,10 @@
 import React, { useState } from 'react'
-import { Filter, X, Weight, Tag, Palette, DollarSign } from 'lucide-react'
+import { Filter, X, Weight, Tag, Palette } from 'lucide-react'
 
 export function Filtros({ categorias, colores, filtros, onFiltroChange, onLimpiarFiltros }) {
   const [showFilters, setShowFilters] = useState(false)
   
-  // Opciones de peso predefinidas
+  // Opciones de peso
   const opcionesPeso = [
     { label: 'Todos', value: 'todos' },
     { label: 'Menos de 10 oz', value: '0-10' },
@@ -14,42 +14,9 @@ export function Filtros({ categorias, colores, filtros, onFiltroChange, onLimpia
     { label: 'Más de 13 oz', value: '13+' }
   ]
   
-  const filtrosActivos = filtros.categoriaId !== 'todos' || filtros.colorId || filtros.pesoRange !== 'todos' || filtros.precioMin || filtros.precioMax
-  
-  const handlePesoChange = (value) => {
-    let pesoMin = null
-    let pesoMax = null
-    
-    switch(value) {
-      case '0-10':
-        pesoMin = 0
-        pesoMax = 10
-        break
-      case '10-11':
-        pesoMin = 10
-        pesoMax = 11
-        break
-      case '11-12':
-        pesoMin = 11
-        pesoMax = 12
-        break
-      case '12-13':
-        pesoMin = 12
-        pesoMax = 13
-        break
-      case '13+':
-        pesoMin = 13
-        pesoMax = null
-        break
-      default:
-        pesoMin = null
-        pesoMax = null
-    }
-    
-    onFiltroChange('pesoMin', pesoMin)
-    onFiltroChange('pesoMax', pesoMax)
-    onFiltroChange('pesoRange', value)
-  }
+  const filtrosActivos = filtros.categoriaId !== 'todos' || 
+                         filtros.colorId || 
+                         (filtros.pesoRange && filtros.pesoRange !== 'todos')
   
   return (
     <div className="bg-white rounded-xl shadow-md p-4">
@@ -145,7 +112,7 @@ export function Filtros({ categorias, colores, filtros, onFiltroChange, onLimpia
           </div>
         </div>
         
-        {/* Filtro por Peso (NUEVO) */}
+        {/* Filtro por Peso */}
         <div>
           <h4 className="font-semibold text-[#1a2332] mb-3 flex items-center gap-2">
             <Weight size={16} className="text-[#c47d3e]" />
@@ -155,7 +122,7 @@ export function Filtros({ categorias, colores, filtros, onFiltroChange, onLimpia
             {opcionesPeso.map(opcion => (
               <button
                 key={opcion.value}
-                onClick={() => handlePesoChange(opcion.value)}
+                onClick={() => onFiltroChange('pesoRange', opcion.value)}
                 className={`px-3 py-1.5 rounded-lg text-sm transition-all ${
                   filtros.pesoRange === opcion.value
                     ? 'bg-[#c47d3e] text-white'
@@ -165,37 +132,6 @@ export function Filtros({ categorias, colores, filtros, onFiltroChange, onLimpia
                 {opcion.label}
               </button>
             ))}
-          </div>
-        </div>
-        
-        {/* Filtro por Precio */}
-        <div>
-          <h4 className="font-semibold text-[#1a2332] mb-3 flex items-center gap-2">
-            <DollarSign size={16} className="text-[#c47d3e]" />
-            Precio (USD/m)
-          </h4>
-          <div className="flex gap-3 items-center">
-            <div className="relative flex-1">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9a8f84] text-sm">$</span>
-              <input
-                type="number"
-                placeholder="Mínimo"
-                value={filtros.precioMin || ''}
-                onChange={(e) => onFiltroChange('precioMin', e.target.value)}
-                className="w-full pl-7 pr-3 py-2 bg-white border border-[#e5dfd7] rounded-lg text-sm focus:ring-2 focus:ring-[#c47d3e] focus:border-transparent"
-              />
-            </div>
-            <span className="text-[#9a8f84]">—</span>
-            <div className="relative flex-1">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9a8f84] text-sm">$</span>
-              <input
-                type="number"
-                placeholder="Máximo"
-                value={filtros.precioMax || ''}
-                onChange={(e) => onFiltroChange('precioMax', e.target.value)}
-                className="w-full pl-7 pr-3 py-2 bg-white border border-[#e5dfd7] rounded-lg text-sm focus:ring-2 focus:ring-[#c47d3e] focus:border-transparent"
-              />
-            </div>
           </div>
         </div>
         

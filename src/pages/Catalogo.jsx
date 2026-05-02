@@ -22,8 +22,6 @@ export function Catalogo() {
   const [filtros, setFiltros] = useState({
     categoriaId: 'todos',
     colorId: null,
-    precioMin: '',
-    precioMax: '',
     pesoMin: null,
     pesoMax: null,
     pesoRange: 'todos'
@@ -80,8 +78,9 @@ export function Catalogo() {
       setCategorias(categoriasData)
       setColores(coloresData)
       setTelasFiltradas(telasData)
-    } catch {
+    } catch (error) {
       toast.error('Error al cargar los datos')
+      console.error(error)
     } finally {
       setCargando(false)
     }
@@ -111,15 +110,7 @@ export function Catalogo() {
       )
     }
 
-    // Filtro por precio
-    if (filtros.precioMin) {
-      filtradas = filtradas.filter(t => t.precio >= parseFloat(filtros.precioMin))
-    }
-    if (filtros.precioMax) {
-      filtradas = filtradas.filter(t => t.precio <= parseFloat(filtros.precioMax))
-    }
-
-    // NUEVO: Filtro por peso
+    // Filtro por peso
     if (filtros.pesoMin !== null && filtros.pesoMin !== undefined && filtros.pesoMin !== '') {
       filtradas = filtradas.filter(t => {
         const pesoNum = parseFloat(t.peso)
@@ -137,15 +128,48 @@ export function Catalogo() {
   }
 
   const handleFiltroChange = (key, value) => {
-    setFiltros({ ...filtros, [key]: value })
+    if (key === 'pesoRange') {
+      let pesoMin = null, pesoMax = null
+      switch(value) {
+        case '0-10':
+          pesoMin = 0
+          pesoMax = 10
+          break
+        case '10-11':
+          pesoMin = 10
+          pesoMax = 11
+          break
+        case '11-12':
+          pesoMin = 11
+          pesoMax = 12
+          break
+        case '12-13':
+          pesoMin = 12
+          pesoMax = 13
+          break
+        case '13+':
+          pesoMin = 13
+          pesoMax = null
+          break
+        default:
+          pesoMin = null
+          pesoMax = null
+      }
+      setFiltros(prev => ({
+        ...prev,
+        pesoRange: value,
+        pesoMin: pesoMin,
+        pesoMax: pesoMax
+      }))
+    } else {
+      setFiltros(prev => ({ ...prev, [key]: value }))
+    }
   }
 
   const handleLimpiarFiltros = () => {
     setFiltros({
       categoriaId: 'todos',
       colorId: null,
-      precioMin: '',
-      precioMax: '',
       pesoMin: null,
       pesoMax: null,
       pesoRange: 'todos'
@@ -155,11 +179,8 @@ export function Catalogo() {
   }
 
   const filtrosActivos = filtros.categoriaId !== 'todos' || 
-                         filtros.colorId || 
-                         filtros.precioMin || 
-                         filtros.precioMax || 
-                         filtros.pesoMin !== null || 
-                         filtros.pesoMax !== null
+                         filtros.colorId !== null || 
+                         filtros.pesoRange !== 'todos'
 
   if (bannerLoading || cargando) {
     return (
@@ -225,6 +246,8 @@ export function Catalogo() {
           margin: 0 auto;
           padding: 2rem;
         }
+        @media (max-width: 768px) { .ynk-container { padding: 1rem; } }
+        
         .ynk-search-input {
           width: 100%;
           padding: 1rem 1rem 1rem 3.2rem;
@@ -243,6 +266,7 @@ export function Catalogo() {
           box-shadow: 0 0 0 4px rgba(196,125,62,0.1);
         }
         .ynk-search-input::placeholder { color: #c9c3b8; }
+        
         .ynk-btn-primary {
           background: #1a2332; color: white;
           padding: 0.75rem 1.5rem; border-radius: 60px;
@@ -251,6 +275,7 @@ export function Catalogo() {
           display: inline-flex; align-items: center; gap: 0.5rem; white-space: nowrap;
         }
         .ynk-btn-primary:hover { background: #c47d3e; transform: translateY(-2px); }
+        
         .ynk-btn-outline {
           background: transparent; color: #1a2332;
           padding: 0.75rem 1.5rem; border-radius: 60px;
@@ -260,10 +285,12 @@ export function Catalogo() {
         }
         .ynk-btn-outline:hover { border-color: #c47d3e; color: #c47d3e; }
         .ynk-btn-outline.active { background: #c47d3e; border-color: #c47d3e; color: white; }
+        
         .ynk-filtros-panel {
           background: #f8f4ef; border-radius: 24px; padding: 1.5rem;
           margin-bottom: 2rem; animation: fadeIn 0.3s ease;
         }
+        
         .ynk-footer {
           background: #1a2332; padding: 2rem;
           margin-top: 4rem;
@@ -274,6 +301,7 @@ export function Catalogo() {
           position: fixed; top: 80px; left: 0; right: 0; bottom: 0;
           background: #090909; z-index: 1000; overflow-y: auto;
         }
+        
         @keyframes fadeInUp {
           from { opacity: 0; transform: translateY(30px); }
           to { opacity: 1; transform: translateY(0); }
@@ -283,9 +311,9 @@ export function Catalogo() {
           0%, 100% { opacity: 1; transform: scale(1); }
           50% { opacity: 0.6; transform: scale(1.1); }
         }
+        
         @media (max-width: 768px) {
           .ynk-banner-title { font-size: 2rem; }
-          .ynk-container { padding: 1rem; }
           .ynk-editor-overlay { top: 60px; }
         }
       `}</style>
@@ -300,10 +328,9 @@ export function Catalogo() {
 
       {/* Contenido principal */}
       <div className="ynk-container">
-        {/* Barra de búsqueda */}
         <div style={{ padding: '1rem 0 2rem' }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
-            {/* Buscador */}
+          {/* Barra de búsqueda y acciones */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem', alignItems: 'center' }}>
             <div style={{ flex: 1, minWidth: '220px', position: 'relative' }}>
               <Search size={20} style={{
                 position: 'absolute', left: '1.1rem', top: '50%',
@@ -319,7 +346,6 @@ export function Catalogo() {
             </div>
 
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
-              {/* Botón de filtros */}
               <button
                 onClick={() => setMostrarFiltros(!mostrarFiltros)}
                 className={`ynk-btn-outline ${mostrarFiltros || filtrosActivos ? 'active' : ''}`}
@@ -327,32 +353,22 @@ export function Catalogo() {
                 <Filter size={16} />
                 Filtros
                 {filtrosActivos && (
-                  <span style={{
-                    background: 'rgba(255,255,255,0.3)', color: 'white',
-                    fontSize: '0.7rem', borderRadius: '40px',
-                    padding: '0.1rem 0.5rem', marginLeft: '0.25rem'
-                  }}>
+                  <span style={{ background: 'rgba(255,255,255,0.3)', color: 'white', fontSize: '0.7rem', borderRadius: '40px', padding: '0.1rem 0.5rem', marginLeft: '0.25rem' }}>
                     activos
                   </span>
                 )}
                 <ChevronDown size={14} style={{ transition: 'transform 0.2s', transform: mostrarFiltros ? 'rotate(180deg)' : 'rotate(0deg)' }} />
               </button>
 
-              {/* Botón "Diseñar Catálogo" — solo para usuarios logueados con rol editor o admin */}
               {user && isEditor && (
                 <button onClick={() => setShowEditor(true)} className="ynk-btn-primary">
                   <Palette size={16} /> Diseñar Catálogo
                 </button>
               )}
 
-              {/* Toggle vista */}
-              <div style={{
-                display: 'flex', gap: '0.25rem', background: 'white',
-                borderRadius: '40px', border: '1.5px solid #e5dfd7', padding: '0.25rem'
-              }}>
+              <div style={{ display: 'flex', gap: '0.25rem', background: 'white', borderRadius: '40px', border: '1.5px solid #e5dfd7', padding: '0.25rem' }}>
                 <button
                   onClick={() => setVista('grid')}
-                  title="Vista cuadrícula"
                   style={{
                     padding: '0.4rem 0.6rem', borderRadius: '40px', border: 'none', cursor: 'pointer',
                     background: vista === 'grid' ? '#c47d3e' : 'transparent',
@@ -364,7 +380,6 @@ export function Catalogo() {
                 </button>
                 <button
                   onClick={() => setVista('list')}
-                  title="Vista lista"
                   style={{
                     padding: '0.4rem 0.6rem', borderRadius: '40px', border: 'none', cursor: 'pointer',
                     background: vista === 'list' ? '#c47d3e' : 'transparent',
@@ -378,7 +393,7 @@ export function Catalogo() {
             </div>
           </div>
 
-          {/* Panel de filtros con nuevo componente */}
+          {/* Panel de filtros */}
           {mostrarFiltros && (
             <div className="ynk-filtros-panel">
               <Filtros
@@ -402,9 +417,7 @@ export function Catalogo() {
           {telasFiltradas.length > 0 ? (
             <div style={{
               display: 'grid',
-              gridTemplateColumns: vista === 'grid'
-                ? 'repeat(auto-fill, minmax(280px, 1fr))'
-                : '1fr',
+              gridTemplateColumns: vista === 'grid' ? 'repeat(auto-fill, minmax(280px, 1fr))' : '1fr',
               gap: '1.5rem'
             }}>
               {telasFiltradas.map(tela => (
@@ -412,10 +425,7 @@ export function Catalogo() {
               ))}
             </div>
           ) : (
-            <div style={{
-              textAlign: 'center', padding: '4rem 2rem',
-              background: '#f8f4ef', borderRadius: '24px'
-            }}>
+            <div style={{ textAlign: 'center', padding: '4rem 2rem', background: '#f8f4ef', borderRadius: '24px' }}>
               <div style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>🔍</div>
               <p style={{ color: '#4b5563', fontSize: '1.1rem', marginBottom: '0.5rem' }}>No se encontraron telas</p>
               <p style={{ color: '#9a8f84', marginBottom: '1.5rem', fontSize: '0.9rem' }}>Intenta con otros filtros o palabras de búsqueda</p>

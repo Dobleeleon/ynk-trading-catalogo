@@ -131,7 +131,7 @@ function CategoriaPreview({ pagina, config, pageNum }) {
             </div>
             <div style={{ padding:'7px 9px', background:colors.white, borderTop:`2px solid ${catColor}` }}>
               {heroFooter ? <div style={{ fontSize:'6px', fontFamily:'sans-serif', color:colors.text, fontWeight:'500', textAlign:'center', lineHeight:1.4 }}>{heroFooter}</div> : <div style={{ fontSize:'5px', fontFamily:'sans-serif', color:colors.muted, textAlign:'center', fontStyle:'italic' }}>Agrega una descripción</div>}
-            </div>
+          </div>
           </div>
           <div style={{ flex:1, padding:'6px', display:'flex', flexDirection:'column', gap:'4px', overflow:'hidden' }}>
             {telas.length === 0 ? <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', color:'#ccc', fontSize:'8px' }}>Sin telas asignadas</div> : (
@@ -204,12 +204,12 @@ function ContactoPreview({ config }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// PDF BUILDER CORREGIDO - Respeta TODO el diseño
+// PDF BUILDER CORREGIDO - Calidad de imágenes y márgenes mejorados
 // ══════════════════════════════════════════════════════════════════════════════
 async function buildPDF(paginas, config) {
-  const pdf = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4', compress:false })
+  const pdf = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4', compress: false })
   const W = 210, H = 297
-  const { colors, brand, coleccion, slogan, coverImage, contacto } = config
+  const { colors, brand, coleccion, slogan, tagline, coverImage, logoImage, contacto } = config
   const rgb = (hex) => { const { r,g,b } = hexToRgb(hex); return [r,g,b] }
   const fill = (x,y,w,h,hex) => { pdf.setFillColor(...rgb(hex)); pdf.rect(x,y,w,h,'F') }
   const t = (text,x,y,opts={}) => { const s=san(text); if(s) pdf.text(s,x,y,opts) }
@@ -220,20 +220,57 @@ async function buildPDF(paginas, config) {
     if (pi > 0) pdf.addPage()
     const pag = paginas[pi]
 
-    // PORTADA
+    // ─── PORTADA ───────────────────────────────────────────────────────────
     if (pag.tipo === 'portada') {
-      const imgData = coverImage ? await loadAndResizeImage(coverImage, 1600, 0.92) : null
-      if (imgData) pdf.addImage(imgData, 'JPEG', 0, 0, W, H, undefined, 'FAST')
-      else fill(0, 0, W, H, colors.primary)
-      pdf.setFont('helvetica','bold'); pdf.setFontSize(32); pdf.setTextColor(...rgb(colors.accent))
-      t(san(brand), W/2, H/2 - 20, {align:'center'})
-      pdf.setFontSize(14); pdf.setTextColor(255,255,255)
-      t(san(coleccion), W/2, H/2 + 10, {align:'center'})
-      pdf.setFontSize(8); pdf.setTextColor(...rgb(colors.muted))
-      t(san(slogan), W/2, H - 20, {align:'center'})
+      // Imagen de portada con mayor calidad
+      const imgData = coverImage ? await loadAndResizeImage(coverImage, 2000, 0.95) : null
+      if (imgData) {
+        pdf.addImage(imgData, 'JPEG', 0, 0, W, H * 0.65, undefined, 'FAST')
+      } else {
+        fill(0, 0, W, H * 0.65, '#2a2a2a')
+      }
+
+      fill(0, 0, 16, 16, colors.accent)
+
+      if (logoImage) {
+        const logoData = await loadAndResizeImage(logoImage, 400, 0.95)
+        if (logoData) {
+          fill(2, 2, 32, 12, 'rgba(255,255,255,0.92)')
+          pdf.addImage(logoData, 'PNG', 3, 3, 30, 10, undefined, 'FAST')
+        }
+      } else {
+        fill(2, 2, 32, 12, '#fff')
+        pdf.setFont('helvetica','bold'); pdf.setFontSize(7); pdf.setTextColor(30,30,30)
+        t(san(brand).slice(0,8), 18, 9, {align:'center'})
+      }
+
+      const panelY = H * 0.63
+      fill(0, panelY, W, H - panelY, colors.white)
+      fill(0, panelY, W, 2, colors.accent)
+      fill(14, panelY + 8, 18, 2, colors.accent)
+
+      pdf.setFont('helvetica','normal'); pdf.setFontSize(7); pdf.setTextColor(...rgb(colors.muted))
+      t(san(tagline), 14, panelY + 16)
+      pdf.setFont('helvetica','bold'); pdf.setFontSize(24); pdf.setTextColor(...rgb(colors.text))
+      t('PRODUCT', 14, panelY + 30)
+      t('CATALOG', 14, panelY + 43)
+
+      fill(14, panelY + 47, 56, 8, colors.accent)
+      pdf.setFont('helvetica','bold'); pdf.setFontSize(6); pdf.setTextColor(30,30,30)
+      t(san(coleccion), 42, panelY + 53, {align:'center'})
+
+      pdf.setFont('helvetica','normal'); pdf.setFontSize(6.5); pdf.setTextColor(...rgb(colors.muted))
+      const sl = pdf.splitTextToSize(san(slogan), 110)
+      sl.slice(0,2).forEach((line,i) => t(line, 14, panelY + 60 + i*7))
+
+      pdf.setFont('helvetica','bold'); pdf.setFontSize(6); pdf.setTextColor(...rgb(colors.accent))
+      t('GET IN TOUCH!', W - 14, panelY + 20, {align:'right'})
+      pdf.setFont('helvetica','normal'); pdf.setFontSize(5.5); pdf.setTextColor(...rgb(colors.muted))
+      t(san(contacto.whatsapp), W - 14, panelY + 27, {align:'right'})
+      t(san(contacto.email), W - 14, panelY + 33, {align:'right'})
     }
 
-    // CATEGORÍA
+    // ─── CATEGORÍA ─────────────────────────────────────────────────────────
     else if (pag.tipo === 'categoria') {
       const catColor = pag.color || colors.accent
       const heroImage = pag.heroImage
@@ -242,23 +279,32 @@ async function buildPDF(paginas, config) {
       const headerBg = pag.headerBackground || colors.white
       
       fill(0, 0, W, H, colors.white)
+      
       if (pag.fondoImagen) {
-        const fondoData = await loadAndResizeImage(pag.fondoImagen, 1600, 0.92)
-        if (fondoData) { pdf.saveGraphicsState(); pdf.setGState(pdf.GState({opacity: pag.fondoOpacity || 0.08})); pdf.addImage(fondoData, 'JPEG', 0, 0, W, H, undefined, 'FAST'); pdf.restoreGraphicsState() }
+        const fondoData = await loadAndResizeImage(pag.fondoImagen, 2000, 0.92)
+        if (fondoData) { 
+          pdf.saveGraphicsState()
+          pdf.setGState(pdf.GState({opacity: pag.fondoOpacity || 0.08}))
+          pdf.addImage(fondoData, 'JPEG', 0, 0, W, H, undefined, 'FAST')
+          pdf.restoreGraphicsState()
+        }
       }
 
-      // HEADER
+      // ── HEADER ──
       const headerY = 8, headerX = 8, headerW = W - 16, headerH = 22
       fill(headerX, headerY, headerW, headerH, headerBg)
       pdf.setDrawColor(...rgb(catColor)); pdf.setLineWidth(1.5)
       pdf.line(headerX, headerY + headerH, headerX + headerW, headerY + headerH)
+      
       pdf.setFont('helvetica','normal'); pdf.setFontSize(5); pdf.setTextColor(...rgb(colors.muted))
       t(san(brand), headerX + 4, headerY + 6)
       pdf.setFont('helvetica','bold'); pdf.setFontSize(13); pdf.setTextColor(...rgb(colors.text))
       t(san(pag.nombre || 'Colección').toUpperCase(), headerX + 4, headerY + 16)
+      
       fill(headerX + headerW - 52, headerY + 4, 48, 7, catColor)
       pdf.setFont('helvetica','bold'); pdf.setFontSize(5.5); pdf.setTextColor(255,255,255)
       t(san(coleccion), headerX + headerW - 28, headerY + 9, {align:'center'})
+      
       if (pag.descripcion) {
         pdf.setFont('helvetica','normal'); pdf.setFontSize(5.5); pdf.setTextColor(80,80,80)
         const dl = pdf.splitTextToSize(san(pag.descripcion), headerW - 58)
@@ -266,123 +312,191 @@ async function buildPDF(paginas, config) {
       }
 
       const bodyY = headerY + headerH + 6
-      const bodyH = H - bodyY - 10
+      const bodyH = H - bodyY - 14  // Leave space for footer
       const leftW = (W - 16) * 0.42
       const heroImgH = bodyH * 0.72
 
-      // HERO IMAGE
+      // ── IMAGEN HERO (alta calidad) ──
       if (heroImage) {
-        const heroData = await loadAndResizeImage(heroImage, 600, 0.92)
-        if (heroData) pdf.addImage(heroData, 'JPEG', headerX, bodyY, leftW, heroImgH, undefined, 'FAST')
+        const heroData = await loadAndResizeImage(heroImage, 800, 0.95)
+        if (heroData) {
+          pdf.addImage(heroData, 'JPEG', headerX, bodyY, leftW, heroImgH, undefined, 'FAST')
+        }
       } else {
         fill(headerX, bodyY, leftW, heroImgH, '#EFEFED')
         pdf.setFontSize(5); pdf.setTextColor(180,180,180)
         t('Sin imagen', headerX + leftW/2, bodyY + heroImgH/2, {align:'center'})
       }
+      
       fill(headerX + leftW - 8, bodyY, 8, 8, catColor)
 
-      // HERO FOOTER
-      const heroFooterY = bodyY + heroImgH + 3
+      // ── FOOTER DE IMAGEN HERO (con más espacio) ──
+      const heroFooterY = bodyY + heroImgH + 5
       fill(headerX, heroFooterY - 2, leftW, 1.5, catColor)
       if (heroFooter) {
-        pdf.setFont('helvetica','normal'); pdf.setFontSize(5); pdf.setTextColor(80,80,80)
+        pdf.setFont('helvetica','normal'); pdf.setFontSize(5); pdf.setTextColor(...rgb(colors.text))
         const fl = pdf.splitTextToSize(san(heroFooter), leftW - 8)
-        fl.slice(0,3).forEach((l,i) => t(l, headerX + 4, heroFooterY + 5 + i * 5))
+        fl.slice(0,3).forEach((l,i) => t(l, headerX + 4, heroFooterY + 4 + i * 5))
       } else {
         pdf.setFont('helvetica','italic'); pdf.setFontSize(4.5); pdf.setTextColor(150,150,150)
-        t('Agrega una descripción', headerX + leftW/2, heroFooterY + 8, {align:'center'})
+        t('Agrega una descripción', headerX + leftW/2, heroFooterY + 7, {align:'center'})
       }
 
-      // DIVISOR
+      // ── DIVISOR ──
       pdf.setDrawColor(...rgb(colors.border)); pdf.setLineWidth(0.3)
       pdf.line(headerX + leftW + 4, bodyY, headerX + leftW + 4, bodyY + bodyH)
 
-      // GRID DE TELAS
+      // ── GRID DE TELAS (3 COLUMNAS) con mejor espaciado ──
       const gridX = headerX + leftW + 8
       const gridW = W - gridX - 8
       const GCOLS = 3
-      const cellW = (gridW - (GCOLS - 1) * 3) / GCOLS
+      const cellW = (gridW - (GCOLS - 1) * 4) / GCOLS
       const cellImgH = cellW * 0.85
-      const cellH = cellImgH + 18
+      const cellH = cellImgH + 22  // Más espacio para texto
       const gridTelas = telas.slice(0, 9)
 
       for (let ti = 0; ti < gridTelas.length; ti++) {
         const tela = gridTelas[ti]
         const col = ti % GCOLS
         const row = Math.floor(ti / GCOLS)
-        const cx = gridX + col * (cellW + 3)
-        const cy = bodyY + row * (cellH + 3)
+        const cx = gridX + col * (cellW + 4)
+        const cy = bodyY + row * (cellH + 4)
         if (cy + cellH > H - 12) continue
 
+        // Imagen con alta calidad
         const imgUrl = tela.imagenes_tela?.find(x => x.es_principal)?.imagen_url || tela.imagenes_tela?.[0]?.imagen_url
-        const imgData = await loadAndResizeImage(imgUrl, 400, 0.9)
-        if (imgData) pdf.addImage(imgData, 'JPEG', cx, cy, cellW, cellImgH, undefined, 'FAST')
-        else fill(cx, cy, cellW, cellImgH, '#F0F0EC')
-        fill(cx, cy + cellImgH, cellW, 1.2, catColor)
+        const imgData = await loadAndResizeImage(imgUrl, 600, 0.95)
+        if (imgData) {
+          pdf.addImage(imgData, 'JPEG', cx, cy, cellW, cellImgH, undefined, 'FAST')
+        } else {
+          fill(cx, cy, cellW, cellImgH, '#F0F0EC')
+        }
+        
+        // Barra de color debajo de la imagen
+        fill(cx, cy + cellImgH, cellW, 1.5, catColor)
 
-        const infoY = cy + cellImgH + 2
-        pdf.setFont('helvetica','bold'); pdf.setFontSize(4); pdf.setTextColor(...rgb(catColor))
-        t('Ref: ' + st(tela.referencia), cx, infoY)
-        pdf.setFontSize(5); pdf.setTextColor(...rgb(colors.text))
+        // Información de la tela con más espacio
+        const infoY = cy + cellImgH + 4
+        pdf.setFont('helvetica','bold'); pdf.setFontSize(4.5); pdf.setTextColor(...rgb(catColor))
+        t('Ref: ' + st(tela.referencia).slice(0,14), cx, infoY)
+        
+        pdf.setFontSize(5.5); pdf.setTextColor(...rgb(colors.text))
         const nombre = san(tela.nombre || '')
-        t(nombre.length > 18 ? nombre.slice(0,16)+'...' : nombre, cx, infoY + 4)
-        pdf.setFont('helvetica','normal'); pdf.setFontSize(3.8); pdf.setTextColor(90,90,90)
+        t(nombre.length > 22 ? nombre.slice(0,20)+'...' : nombre, cx, infoY + 5)
+        
+        pdf.setFont('helvetica','normal'); pdf.setFontSize(4.5); pdf.setTextColor(90,90,90)
         const comp = st(tela.composicion, '—')
-        t(comp.length > 22 ? comp.slice(0,20)+'...' : comp, cx, infoY + 8)
+        t(comp.length > 25 ? comp.slice(0,23)+'...' : comp, cx, infoY + 10)
 
+        // Especificaciones de peso y ancho
         const specs = [tela.peso && `Peso: ${san(tela.peso)}`, tela.ancho && `Ancho: ${san(tela.ancho)}`].filter(Boolean).join('  ')
-        if (specs) { pdf.setFontSize(3.8); pdf.setTextColor(100,100,100); t(specs, cx, infoY + 12) }
+        if (specs) { 
+          pdf.setFontSize(4); pdf.setTextColor(100,100,100)
+          t(specs, cx, infoY + 14.5)
+        }
 
+        // Colores
         const coloresTela = tela.tela_colores || []
         if (coloresTela.length) {
           let dotX = cx
           coloresTela.slice(0,6).forEach(tc => {
             const { r, g, b } = hexToRgb(tc.colores?.codigo_hex || '#ccc')
             pdf.setFillColor(r, g, b); pdf.setDrawColor(150,150,150); pdf.setLineWidth(0.05)
-            pdf.circle(dotX + 2.5, infoY + 17, 2, 'FD')
-            dotX += 6
+            pdf.circle(dotX + 3, infoY + 19, 2.5, 'FD')
+            dotX += 7
           })
         }
       }
+      
+      // Telas adicionales
       if (telas.length > 9) {
         pdf.setFont('helvetica','normal'); pdf.setFontSize(4.5); pdf.setTextColor(...rgb(colors.muted))
-        t(`+${telas.length - 9} referencias adicionales`, gridX, bodyY + bodyH - 4)
+        t(`+${telas.length - 9} referencias adicionales`, gridX, bodyY + bodyH - 6)
       }
 
-      // FOOTER DE PÁGINA
+      // ── FOOTER DE PÁGINA (sin sobreescribir número) ──
       fill(0, H - 8, W, 8, colors.primary)
-      pdf.setFont('helvetica','normal'); pdf.setFontSize(5); pdf.setTextColor(255,255,255,0.5)
-      t(`${san(brand)} · ${san(pag.nombre || '')}`, 10, H - 3)
-      pdf.setFont('helvetica','bold'); pdf.setFontSize(6); pdf.setTextColor(...rgb(catColor))
-      t(String(globalPage).padStart(2, '0'), W - 10, H - 3, {align:'right'})
+      pdf.setFont('helvetica','normal'); pdf.setFontSize(5); pdf.setTextColor(255,255,255,0.6)
+      t(`${san(brand)} · ${san(pag.nombre || '')} · ${san(coleccion)}`, 8, H - 3)
+      
+      // Número de página en posición fija (sin sobreescribir)
+      pdf.setFont('helvetica','bold'); pdf.setFontSize(7); pdf.setTextColor(...rgb(catColor))
+      t(String(globalPage).padStart(2, '0'), W - 8, H - 3, {align:'right'})
     }
 
-    // CONTACTO
+    // ─── CONTACTO ──────────────────────────────────────────────────────────
     else if (pag.tipo === 'contacto') {
       fill(0, 0, W, H, colors.primary)
-      pdf.setFont('helvetica','bold'); pdf.setFontSize(24); pdf.setTextColor(...rgb(colors.accent))
-      t(san(brand), W/2, 60, {align:'center'})
-      pdf.setFontSize(10); pdf.setTextColor(255,255,255)
-      t('SOLUCIONES TEXTILES A GRAN ESCALA', W/2, 80, {align:'center'})
-      fill(30, 110, W-60, 100, colors.white)
-      pdf.setFontSize(8); pdf.setTextColor(...rgb(colors.accent))
-      t('ATENCION DIRECTA', W/2, 135, {align:'center'})
-      pdf.setFontSize(14); pdf.setTextColor(...rgb(colors.text))
-      t(san(contacto.nombre), W/2, 155, {align:'center'})
-      pdf.setFontSize(8); pdf.setTextColor(...rgb(colors.text))
-      t(san(contacto.whatsapp), W/2, 175, {align:'center'})
-      t(san(contacto.email), W/2, 190, {align:'center'})
+      fill(W - 22, 0, 22, 22, colors.accent)
+      
+      if (logoImage) {
+        const logoData = await loadAndResizeImage(logoImage, 400, 0.95)
+        if (logoData) pdf.addImage(logoData, 'PNG', 14, 16, 44, 18, undefined, 'FAST')
+      } else {
+        pdf.setFont('helvetica','bold'); pdf.setFontSize(22); pdf.setTextColor(255,255,255)
+        t(san(brand), 14, 34)
+      }
+      
+      pdf.setFont('helvetica','normal'); pdf.setFontSize(7); pdf.setTextColor(...rgb(colors.accent))
+      t('SOLUCIONES TEXTILES A GRAN ESCALA', 14, 45)
+      
+      pdf.setFontSize(7); pdf.setTextColor(200,200,200)
+      const dl = pdf.splitTextToSize(san(contacto.descripcion), 160)
+      dl.slice(0,4).forEach((l,i) => t(l, 14, 56 + i*6.5))
+      
+      const cardX = 25, cardY = 110, cardW = W - 50, cardH = 110
+      fill(cardX, cardY, cardW, cardH, colors.white)
+      pdf.setDrawColor(...rgb(colors.border)); pdf.setLineWidth(0.5)
+      pdf.rect(cardX, cardY, cardW, cardH)
+      fill(cardX, cardY, cardW, 3, colors.accent)
+      
+      pdf.setFont('helvetica','normal'); pdf.setFontSize(6); pdf.setTextColor(...rgb(colors.muted))
+      t('ATENCION DIRECTA', W/2, cardY + 13, {align:'center'})
+      pdf.setFont('helvetica','bold'); pdf.setFontSize(15); pdf.setTextColor(...rgb(colors.text))
+      t(san(contacto.nombre), W/2, cardY + 25, {align:'center'})
+      
+      const rows = [
+        { sym: 'W', val: contacto.whatsapp },
+        { sym: '@', val: contacto.email },
+        { sym: 'L', val: contacto.ubicacion }
+      ]
+      rows.forEach(({sym, val}, i) => {
+        const ry = cardY + 40 + i * 20
+        pdf.setFillColor(...rgb(colors.accent))
+        pdf.circle(cardX + 16, ry - 2, 5, 'F')
+        pdf.setFont('helvetica','bold'); pdf.setFontSize(6.5); pdf.setTextColor(30,30,30)
+        t(sym, cardX + 16, ry + 0.5, {align:'center'})
+        pdf.setFont('helvetica','normal'); pdf.setFontSize(9); pdf.setTextColor(40,40,40)
+        t(san(val), cardX + 26, ry)
+      })
+      
+      pdf.setDrawColor(...rgb(colors.border)); pdf.setLineWidth(0.4)
+      pdf.line(cardX + 12, cardY + 102, cardX + cardW - 12, cardY + 102)
+      pdf.setFont('helvetica','bold'); pdf.setFontSize(5.5); pdf.setTextColor(120,120,120)
+      t('PROGRAME UNA VISITA O VIDEOLLAMADA', W/2, cardY + 109, {align:'center'})
+      
+      fill(0, H - 18, W, 18, colors.light)
+      pdf.setFont('helvetica','oblique'); pdf.setFontSize(8); pdf.setTextColor(100,100,100)
+      t(san(slogan), W/2, H - 8, {align:'center'})
+      
+      fill(0, H - 8, W, 8, colors.primary)
     }
 
-    pdf.setFont('helvetica','normal'); pdf.setFontSize(7); pdf.setTextColor(150,150,150)
-    t(`${globalPage} / ${paginas.length}`, W-10, H-5, {align:'right'})
+    // Número de página general (solo se aplica si no se colocó ya)
+    if (pag.tipo !== 'categoria') {
+      pdf.setFont('helvetica','normal'); pdf.setFontSize(7); pdf.setTextColor(160,160,160)
+      t(`${globalPage} / ${paginas.length}`, W - 10, H - 5, {align:'right'})
+    }
+    
+    // Para categorías, el número ya se puso en el footer
     globalPage++
   }
+  
   return pdf
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// MAIN COMPONENT - (Se mantiene igual, solo importa que las props se pasan correctamente)
+// MAIN COMPONENT
 // ══════════════════════════════════════════════════════════════════════════════
 export function CatalogoEditorFashion({ telas = [], categorias = [], onClose }) {
   const [cfg, setCfg] = useState(DEFAULT_CFG)

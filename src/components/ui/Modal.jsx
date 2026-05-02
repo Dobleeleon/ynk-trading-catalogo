@@ -44,7 +44,6 @@ export function Modal({ isOpen, onClose, title, children }) {
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Botón de cierre - siempre visible */}
         <button
           onClick={onClose}
           style={{
@@ -72,7 +71,6 @@ export function Modal({ isOpen, onClose, title, children }) {
           <X size={20} />
         </button>
         
-        {/* Título */}
         {title && (
           <div style={{ 
             padding: '1rem 1.5rem 0 1.5rem',
@@ -85,7 +83,6 @@ export function Modal({ isOpen, onClose, title, children }) {
           </div>
         )}
         
-        {/* Contenido */}
         <div style={{ padding: '1.5rem' }}>
           {children}
         </div>
