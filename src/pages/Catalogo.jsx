@@ -8,44 +8,84 @@ import { Filtros } from '../components/catalogo/Filtros'
 import { CatalogoEditorFashion } from '../components/CatalogoEditorFashion'
 import { Modal } from '../components/ui/Modal'
 import { DetalleTelaModal } from '../components/catalogo/DetalleTelaModal'
+import { Navbar } from '../components/layout/Navbar'  // 👈 IMPORTAR NAVBAR
 import toast from 'react-hot-toast'
 
 const DEFAULT_BANNER = 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=1200&q=85'
+const ITEMS_PER_PAGE = 12
 
-// ─── Skeleton card para el estado de carga ────────────────────────────────────
-function SkeletonCard() {
+// Componente de paginación
+function Paginacion({ currentPage, totalPages, onPageChange }) {
+  const getPageNumbers = () => {
+    const pages = []
+    if (totalPages <= 5) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i)
+    } else if (currentPage <= 3) {
+      for (let i = 1; i <= 5; i++) pages.push(i)
+    } else if (currentPage >= totalPages - 2) {
+      for (let i = totalPages - 4; i <= totalPages; i++) pages.push(i)
+    } else {
+      for (let i = currentPage - 2; i <= currentPage + 2; i++) pages.push(i)
+    }
+    return pages
+  }
+
   return (
     <div style={{
-      borderRadius: '20px',
-      overflow: 'hidden',
-      background: '#fff',
-      border: '1.5px solid #f0ebe4',
-      boxShadow: '0 2px 12px rgba(0,0,0,0.04)'
+      display: 'flex',
+      justifyContent: 'center',
+      gap: '0.5rem',
+      marginTop: '2rem',
+      flexWrap: 'wrap'
     }}>
-      <div className="ynk-shimmer" style={{ height: '220px', background: '#f0ebe4' }} />
-      <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-        <div className="ynk-shimmer" style={{ height: '18px', borderRadius: '8px', width: '70%' }} />
-        <div className="ynk-shimmer" style={{ height: '13px', borderRadius: '8px', width: '45%' }} />
-        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
-          {[1, 2, 3].map(i => (
-            <div key={i} className="ynk-shimmer" style={{ width: '24px', height: '24px', borderRadius: '50%' }} />
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function SkeletonGrid({ count = 8 }) {
-  return (
-    <div style={{
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-      gap: '1.5rem'
-    }}>
-      {Array.from({ length: count }).map((_, i) => (
-        <SkeletonCard key={i} />
+      <button
+        onClick={() => onPageChange(currentPage - 1)}
+        disabled={currentPage === 1}
+        style={{
+          padding: '0.5rem 1rem',
+          borderRadius: '8px',
+          border: '1px solid #e5dfd7',
+          background: currentPage === 1 ? '#f0ebe4' : 'white',
+          cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+          transition: 'all 0.2s'
+        }}
+      >
+        Anterior
+      </button>
+      
+      {getPageNumbers().map(pageNum => (
+        <button
+          key={pageNum}
+          onClick={() => onPageChange(pageNum)}
+          style={{
+            padding: '0.5rem 1rem',
+            borderRadius: '8px',
+            border: '1px solid #e5dfd7',
+            background: currentPage === pageNum ? '#c47d3e' : 'white',
+            color: currentPage === pageNum ? 'white' : '#1a2332',
+            cursor: 'pointer',
+            fontWeight: currentPage === pageNum ? '600' : '400',
+            transition: 'all 0.2s'
+          }}
+        >
+          {pageNum}
+        </button>
       ))}
+      
+      <button
+        onClick={() => onPageChange(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        style={{
+          padding: '0.5rem 1rem',
+          borderRadius: '8px',
+          border: '1px solid #e5dfd7',
+          background: currentPage === totalPages ? '#f0ebe4' : 'white',
+          cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+          transition: 'all 0.2s'
+        }}
+      >
+        Siguiente
+      </button>
     </div>
   )
 }
@@ -53,7 +93,7 @@ function SkeletonGrid({ count = 8 }) {
 export function Catalogo() {
   const { user, isEditor } = useAuth()
 
-  // Banner - INICIALIZAR SIN IMAGEN HASTA CARGAR
+  // Banner - Inicializar SIN imagen para evitar flickering
   const [bannerImage, setBannerImage] = useState(null)
   const [bannerLoading, setBannerLoading] = useState(true)
 
@@ -70,11 +110,11 @@ export function Catalogo() {
   const [showEditor, setShowEditor] = useState(false)
   const [ordenPor, setOrdenPor] = useState('nombre')
   const [ordenDir, setOrdenDir] = useState('asc')
+  const [currentPage, setCurrentPage] = useState(1)
 
-  // ── Banner: carga completa antes de mostrar ────────────────────────────────
+  // ── Banner: carga sin flickering ───────────────────────────────────────────────────
   useEffect(() => {
     const loadBanner = async () => {
-      setBannerLoading(true)
       try {
         const val = await getSiteSetting('catalogo_banner')
         setBannerImage(val || DEFAULT_BANNER)
@@ -88,9 +128,49 @@ export function Catalogo() {
     loadBanner()
   }, [])
 
-  // ── Datos del catálogo ─────────────────────────────────────────────────────
+  // ── Datos del catálogo con caché ─────────────────────────────────────────────────────
   useEffect(() => {
-    cargarDatos()
+    const cargarDatosOptimizado = async () => {
+      try {
+        // Intentar cargar desde caché
+        const cached = sessionStorage.getItem('catalogo_cache')
+        if (cached) {
+          const { telas: tCache, categorias: cCache, colores: colCache, timestamp } = JSON.parse(cached)
+          if (Date.now() - timestamp < 5 * 60 * 1000) { // 5 minutos
+            setTelas(tCache)
+            setCategorias(cCache)
+            setColores(colCache)
+            setCargando(false)
+            return
+          }
+        }
+
+        const [telasData, categoriasData, coloresData] = await Promise.all([
+          telaService.obtenerTodas(),
+          categoriaService.obtenerTodas(),
+          colorService.obtenerTodos()
+        ])
+        
+        setTelas(telasData)
+        setCategorias(categoriasData)
+        setColores(coloresData)
+        
+        // Guardar en caché
+        sessionStorage.setItem('catalogo_cache', JSON.stringify({
+          telas: telasData,
+          categorias: categoriasData,
+          colores: coloresData,
+          timestamp: Date.now()
+        }))
+      } catch (error) {
+        toast.error('Error al cargar los datos')
+        console.error(error)
+      } finally {
+        setCargando(false)
+      }
+    }
+    
+    cargarDatosOptimizado()
   }, [])
 
   const telasFiltradas_ = useMemo(() => {
@@ -133,6 +213,20 @@ export function Catalogo() {
     return filtradas
   }, [telas, busqueda, filtros, ordenPor, ordenDir])
 
+  // Paginación
+  const paginatedTelas = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE
+    const end = start + ITEMS_PER_PAGE
+    return telasFiltradas_.slice(start, end)
+  }, [telasFiltradas_, currentPage])
+
+  const totalPages = Math.ceil(telasFiltradas_.length / ITEMS_PER_PAGE)
+
+  // Resetear página al cambiar filtros
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [busqueda, filtros, ordenPor, ordenDir])
+
   useEffect(() => {
     setTelasFiltradas(telasFiltradas_)
   }, [telasFiltradas_])
@@ -145,24 +239,6 @@ export function Catalogo() {
     }
     return () => { document.body.style.overflow = 'auto' }
   }, [showEditor])
-
-  const cargarDatos = async () => {
-    try {
-      const [telasData, categoriasData, coloresData] = await Promise.all([
-        telaService.obtenerTodas(),
-        categoriaService.obtenerTodas(),
-        colorService.obtenerTodos()
-      ])
-      setTelas(telasData)
-      setCategorias(categoriasData)
-      setColores(coloresData)
-    } catch (error) {
-      toast.error('Error al cargar los datos')
-      console.error(error)
-    } finally {
-      setCargando(false)
-    }
-  }
 
   const handleFiltroChange = useCallback((key, value) => {
     setFiltros(prev => ({ ...prev, [key]: value }))
@@ -185,18 +261,22 @@ export function Catalogo() {
     filtros.colorId !== null ||
     ordenPor !== 'nombre'
 
-  // Mostrar loading mientras carga el banner y el catálogo
-  if (bannerLoading && cargando) {
+  // ─── SPINNER DE CARGA (como en Contacto) ────────────────────────────────────────────
+  if (bannerLoading || cargando) {
     return (
       <div style={{ fontFamily: "'DM Sans', sans-serif", background: '#fff', minHeight: '100vh' }}>
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', flexDirection: 'column', gap: '1rem' }}>
-          <div style={{
-            width: '48px', height: '48px',
-            border: '3px solid #e5dfd7', borderBottomColor: '#c47d3e',
-            borderRadius: '50%', animation: 'spin 1s linear infinite'
-          }} />
-          <p style={{ color: '#6b7280' }}>Cargando catálogo...</p>
-          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        <Navbar />
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(100vh - 70px)' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{
+              width: '48px', height: '48px',
+              border: '3px solid #e5dfd7', borderBottomColor: '#c47d3e',
+              borderRadius: '50%', animation: 'spin 1s linear infinite',
+              margin: '0 auto 1rem'
+            }} />
+            <p style={{ color: '#6b7280' }}>Cargando catálogo...</p>
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          </div>
         </div>
       </div>
     )
@@ -206,16 +286,6 @@ export function Catalogo() {
     <div style={{ fontFamily: "'DM Sans', sans-serif", background: '#fff', color: '#1a2332' }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600;700&display=swap');
-
-        @keyframes ynk-shimmer-anim {
-          0%   { background-position: -600px 0; }
-          100% { background-position:  600px 0; }
-        }
-        .ynk-shimmer {
-          background: linear-gradient(90deg, #f0ebe4 25%, #e8e2da 50%, #f0ebe4 75%);
-          background-size: 600px 100%;
-          animation: ynk-shimmer-anim 1.4s ease infinite;
-        }
 
         .ynk-catalogo-banner {
           position: relative;
@@ -335,7 +405,9 @@ export function Catalogo() {
         }
       `}</style>
 
-      {/* Banner - ya está completamente cargado cuando se renderiza */}
+      <Navbar />
+
+      {/* Banner */}
       <div
         className="ynk-catalogo-banner"
         style={{ backgroundImage: `url(${bannerImage})` }}
@@ -434,46 +506,51 @@ export function Catalogo() {
           )}
 
           {/* Contador */}
-          {!cargando && (
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: '0.5rem',
-              marginBottom: '1.5rem', fontSize: '0.9rem', color: '#6b7280'
-            }}>
-              <Sparkles size={16} style={{ color: '#c47d3e', animation: 'sparkle 1.5s ease infinite' }} />
-              <span style={{ fontWeight: 700, color: '#c47d3e', fontSize: '1.2rem' }}>
-                {telasFiltradas.length}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '0.5rem',
+            marginBottom: '1.5rem', fontSize: '0.9rem', color: '#6b7280'
+          }}>
+            <Sparkles size={16} style={{ color: '#c47d3e', animation: 'sparkle 1.5s ease infinite' }} />
+            <span style={{ fontWeight: 700, color: '#c47d3e', fontSize: '1.2rem' }}>
+              {telasFiltradas_.length}
+            </span>
+            telas encontradas
+            {ordenPor !== 'nombre' && (
+              <span style={{ fontSize: '0.75rem', color: '#9a8f84', marginLeft: '0.5rem' }}>
+                (ordenado por {ordenPor} {ordenDir === 'asc' ? 'ascendente' : 'descendente'})
               </span>
-              telas encontradas
-              {ordenPor !== 'nombre' && (
-                <span style={{ fontSize: '0.75rem', color: '#9a8f84', marginLeft: '0.5rem' }}>
-                  (ordenado por {ordenPor} {ordenDir === 'asc' ? 'ascendente' : 'descendente'})
-                </span>
-              )}
-            </div>
-          )}
+            )}
+          </div>
 
-          {/* Estado de carga: skeletons */}
-          {cargando ? (
-            <SkeletonGrid count={8} />
-          ) : telasFiltradas.length > 0 ? (
-            <div
-              className="ynk-grid-enter"
-              style={{
-                display: 'grid',
-                gridTemplateColumns: vista === 'grid'
-                  ? 'repeat(auto-fill, minmax(280px, 1fr))'
-                  : '1fr',
-                gap: '1.5rem'
-              }}
-            >
-              {telasFiltradas.map(tela => (
-                <TarjetaTela
-                  key={tela.id}
-                  tela={tela}
-                  onClick={setTelaSeleccionada}
+          {/* Grid de telas con paginación */}
+          {paginatedTelas.length > 0 ? (
+            <>
+              <div
+                className="ynk-grid-enter"
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: vista === 'grid'
+                    ? 'repeat(auto-fill, minmax(280px, 1fr))'
+                    : '1fr',
+                  gap: '1.5rem'
+                }}
+              >
+                {paginatedTelas.map(tela => (
+                  <TarjetaTela
+                    key={tela.id}
+                    tela={tela}
+                    onClick={setTelaSeleccionada}
+                  />
+                ))}
+              </div>
+              {totalPages > 1 && (
+                <Paginacion
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
                 />
-              ))}
-            </div>
+              )}
+            </>
           ) : (
             <div style={{
               textAlign: 'center', padding: '4rem 2rem',
