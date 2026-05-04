@@ -4,9 +4,10 @@ import { FormularioTela } from '../components/admin/FormularioTela'
 import { AdminCategorias } from '../components/admin/AdminCategorias'
 import { AdminColores } from '../components/admin/AdminColores'
 import { AdminUsuarios } from '../components/admin/AdminUsuarios'
+import { CurrencyConverter } from '../components/admin/CurrencyConverter'
 import { useAuth } from '../context/AuthContext'
 import { getSiteSettings, setSiteSetting } from '../services/supabaseClient'
-import { LogOut, Users, Search, Filter, ChevronDown } from 'lucide-react'
+import { LogOut, Users, Search, Filter, ChevronDown, DollarSign } from 'lucide-react'
 import {
   Edit, Trash2, Package, Layers, Palette,
   Image as ImageIcon, Upload, Save, X, AlertCircle
@@ -70,6 +71,7 @@ export function AdminPanel() {
     { id: 'categorias', label: 'Categorías', icon: Layers, roles: ['admin'] },
     { id: 'colores', label: 'Colores', icon: Palette, roles: ['admin', 'editor'] },
     { id: 'usuarios', label: 'Usuarios', icon: Users, roles: ['admin'] },
+    { id: 'conversor', label: 'Conversor', icon: DollarSign, roles: ['admin', 'editor'] },
     { id: 'apariencia', label: 'Apariencia', icon: ImageIcon, roles: ['admin'] },
   ]
 
@@ -542,6 +544,11 @@ export function AdminPanel() {
         {/* ── USUARIOS (solo admin) ── */}
         {activeTab === 'usuarios' && isAdmin && (
           <AdminUsuarios />
+        )}
+
+        {/* ── CONVERSOR DE MONEDA (admin y editor) ── */}
+        {activeTab === 'conversor' && (isAdmin || isEditor) && (
+          <CurrencyConverter />
         )}
 
         {/* ── APARIENCIA (solo admin) ── */}

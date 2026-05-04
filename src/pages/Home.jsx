@@ -30,7 +30,7 @@ export function Home() {
   const features = [
     { num: '01', title: 'Calidad Garantizada', text: 'Telas seleccionadas de los mejores proveedores del mundo, con estrictos controles de calidad en cada lote.' },
     { num: '02', title: 'Variedad de Colores', text: 'Amplia gama de colores y acabados para todos tus proyectos de diseño y confección.' },
-    { num: '03', title: 'Te entregamos en bodega', text: 'Coordinamos la logística para que recibas tus materiales directamente en tu bodega o centro de operaciones.' },
+    { num: '03', title: 'Entrega Directa', text: 'Recibe tus pedidos directamente en tu bodega. Coordinamos la logística para que no te preocupes por nada.' },
   ]
 
   const collection = [
@@ -133,10 +133,10 @@ export function Home() {
         .ynk-side-links a:hover { opacity:1; color:#c47d3e; }
 
         .ynk-stats { display:grid; grid-template-columns:repeat(3,1fr); border-top:1px solid #e5dfd7; border-bottom:1px solid #e5dfd7; }
-        .ynk-stat { padding:2rem 3.5rem; border-right:1px solid #e5dfd7; }
+        .ynk-stat { padding:2rem 3.5rem; border-right:1px solid #e5dfd7; text-align:center; }
         .ynk-stat:last-child { border-right:none; }
         .ynk-stat-num { font-family:'Playfair Display',serif; font-size:2.6rem; font-weight:700; color:#1a2332; }
-        .ynk-stat-label { font-size:0.7rem; letter-spacing:0.18em; text-transform:uppercase; color:#9a8f84; }
+        .ynk-stat-label { font-size:0.7rem; letter-spacing:0.18em; text-transform:uppercase; color:#9a8f84; margin-top:0.5rem; }
 
         .ynk-features { padding:6rem 5rem; background:#fff; }
         .ynk-section-eyebrow {
@@ -235,11 +235,52 @@ export function Home() {
         </div>
       </section>
 
-      {/* Stats - modificado */}
+      {/* Stats - con información de Entrega a bodega */}
       <div className="ynk-stats">
-        <div className="ynk-stat"><div className="ynk-stat-num">+200</div><div className="ynk-stat-label">Tipos de tela</div></div>
-        <div className="ynk-stat"><div className="ynk-stat-num">15+</div><div className="ynk-stat-label">Años de experiencia</div></div>
-        <div className="ynk-stat"><div className="ynk-stat-num">Entrega</div><div className="ynk-stat-label">Directo a bodega</div></div>
+        <div className="ynk-stat">
+          <div className="ynk-stat-num">+200</div>
+          <div className="ynk-stat-label">Tipos de tela</div>
+        </div>
+        <div className="ynk-stat">
+          <div className="ynk-stat-num">15+</div>
+          <div className="ynk-stat-label">Años de experiencia</div>
+        </div>
+        <div className="ynk-stat">
+          <div className="ynk-stat-num">Entrega</div>
+          <div className="ynk-stat-label">Directo a bodega</div>
+          <div style={{ 
+            fontSize: '0.6rem', 
+            color: '#9a8f84', 
+            marginTop: '0.75rem',
+            display: 'flex',
+            gap: '0.3rem',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexWrap: 'wrap'
+          }}>
+            <span style={{ color: '#c47d3e', fontWeight: 'bold' }}>*</span>
+            <span>Aplican restricciones</span>
+            <span style={{ color: '#e5dfd7' }}>|</span>
+            <button 
+              onClick={() => navigate('/contacto')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#c47d3e',
+                fontSize: '0.6rem',
+                fontWeight: '500',
+                cursor: 'pointer',
+                padding: '0.2rem 0.4rem',
+                borderRadius: '20px',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(196,125,62,0.1)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'none'}
+            >
+              Consultar asesor →
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Features */}
@@ -288,7 +329,7 @@ export function Home() {
         </div>
       </section>
 
-      {/* Footer - sin links de términos */}
+      {/* Footer */}
       <footer className="ynk-footer">
         <p className="ynk-footer-copy">© 2025 YNK Trading · Todos los derechos reservados</p>
       </footer>
