@@ -172,7 +172,7 @@ export function Navbar() {
           YNK <span>TRADING</span>
         </Link>
         
-        <ul className={`ynk-nav-links ${menuOpen ? 'mobile-open' : ''}`} id="navLinks">
+        <ul className={`ynk-nav-links ${menuOpen ? 'mobile-open' : ''}`}>
           {navLinks.map((link) => (
             <li key={link.path}>
               <Link to={link.path} className={isActive(link.path) ? 'active' : ''}>

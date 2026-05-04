@@ -114,6 +114,8 @@ export async function getSiteSetting(key) {
   }
 }
 
+// Función para obtener múltiples settings
+
 export async function getSiteSettings(keys) {
   try {
     const { data, error } = await supabase

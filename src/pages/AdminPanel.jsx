@@ -39,8 +39,9 @@ export function AdminPanel() {
   // Banners
   const [homePreview, setHomePreview] = useState(DEFAULT_BANNER)
   const [catalogoPreview, setCatalogoPreview] = useState(DEFAULT_BANNER)
+  const [contactoPreview, setContactoPreview] = useState(DEFAULT_BANNER)
   const [saving, setSaving] = useState(false)
-  const [uploading, setUploading] = useState({ home: false, catalogo: false })
+  const [uploading, setUploading] = useState({ home: false, catalogo: false, contacto: false })
   const [loadingBanners, setLoadingBanners] = useState(true)
 
   // Opciones de peso
@@ -83,7 +84,6 @@ export function AdminPanel() {
   useEffect(() => {
     let filtradas = [...telas]
 
-    // Búsqueda por texto
     if (busquedaTelas.trim() !== '') {
       filtradas = filtradas.filter(tela =>
         tela.nombre?.toLowerCase().includes(busquedaTelas.toLowerCase()) ||
@@ -93,12 +93,10 @@ export function AdminPanel() {
       )
     }
 
-    // Filtro por categoría
     if (categoriaFiltro !== 'todos') {
       filtradas = filtradas.filter(tela => tela.categoria_id === parseInt(categoriaFiltro))
     }
 
-    // Filtro por peso
     if (pesoFiltro !== 'todos') {
       filtradas = filtradas.filter(tela => {
         const pesoNum = parseFloat(tela.peso)
@@ -114,7 +112,6 @@ export function AdminPanel() {
       })
     }
 
-    // Ordenamiento
     filtradas.sort((a, b) => {
       let valA, valB
       switch(ordenPor) {
@@ -152,7 +149,6 @@ export function AdminPanel() {
     setTelasFiltradas(filtradas)
   }, [busquedaTelas, categoriaFiltro, pesoFiltro, ordenPor, ordenDir, telas])
 
-  // Si el tab activo ya no está disponible para el rol, resetear
   useEffect(() => {
     if (tabs.length > 0 && !tabs.find(t => t.id === activeTab)) {
       setActiveTab(tabs[0].id)
@@ -178,12 +174,14 @@ export function AdminPanel() {
   const cargarBanners = async () => {
     setLoadingBanners(true)
     try {
-      const settings = await getSiteSettings(['home_banner', 'catalogo_banner'])
+      const settings = await getSiteSettings(['home_banner', 'catalogo_banner', 'contacto_banner'])
       setHomePreview(settings.home_banner || DEFAULT_BANNER)
       setCatalogoPreview(settings.catalogo_banner || DEFAULT_BANNER)
+      setContactoPreview(settings.contacto_banner || DEFAULT_BANNER)
     } catch {
       setHomePreview(DEFAULT_BANNER)
       setCatalogoPreview(DEFAULT_BANNER)
+      setContactoPreview(DEFAULT_BANNER)
     } finally {
       setLoadingBanners(false)
     }
@@ -272,8 +270,10 @@ export function AdminPanel() {
       const dataUrl = await convertirImagenABase64(file)
       if (type === 'home') {
         setHomePreview(dataUrl)
-      } else {
+      } else if (type === 'catalogo') {
         setCatalogoPreview(dataUrl)
+      } else {
+        setContactoPreview(dataUrl)
       }
       toast.success('Imagen cargada — recuerda guardar los cambios')
     } catch {
@@ -290,11 +290,12 @@ export function AdminPanel() {
     }
     setSaving(true)
     try {
-      const [r1, r2] = await Promise.all([
+      const [r1, r2, r3] = await Promise.all([
         setSiteSetting('home_banner', homePreview),
-        setSiteSetting('catalogo_banner', catalogoPreview)
+        setSiteSetting('catalogo_banner', catalogoPreview),
+        setSiteSetting('contacto_banner', contactoPreview)
       ])
-      if (!r1.success || !r2.success) throw new Error('Error al guardar')
+      if (!r1.success || !r2.success || !r3.success) throw new Error('Error al guardar')
       toast.success('Imágenes guardadas para todos los usuarios ✓')
     } catch {
       toast.error('Error al guardar las imágenes')
@@ -306,6 +307,7 @@ export function AdminPanel() {
   const resetToDefault = () => {
     setHomePreview(DEFAULT_BANNER)
     setCatalogoPreview(DEFAULT_BANNER)
+    setContactoPreview(DEFAULT_BANNER)
     toast.success('Imágenes restauradas a las predeterminadas')
   }
 
@@ -508,7 +510,6 @@ export function AdminPanel() {
               </table>
             </div>
             
-            {/* Mostrar cantidad de resultados */}
             {telasFiltradas.length > 0 && telasFiltradas.length !== telas.length && (
               <div style={{ marginTop: '1rem', fontSize: '0.8rem', color: '#9a8f84', textAlign: 'center' }}>
                 Mostrando {telasFiltradas.length} de {telas.length} telas
@@ -592,6 +593,27 @@ export function AdminPanel() {
                   <label className={`ynk-upload-area block ${uploading.catalogo ? 'disabled' : ''}`} style={{ display:'block' }}>
                     <input type="file" accept={FORMATOS_SOPORTADOS.join(',')} onChange={(e) => handleImageUpload(e, 'catalogo')} style={{ display:'none' }} disabled={uploading.catalogo} />
                     {uploading.catalogo ? (
+                      <div style={{ textAlign:'center' }}><div className="animate-spin" style={{ width:'32px', height:'32px', border:'2px solid transparent', borderBottomColor:'#c47d3e', borderRadius:'50%', margin:'0 auto 0.5rem' }}></div><p style={{ color:'#6b7280', fontSize:'0.85rem' }}>Procesando...</p></div>
+                    ) : (
+                      <>
+                        <Upload size={24} style={{ margin:'0 auto 0.5rem', display:'block', color:'#c47d3e' }} />
+                        <p style={{ color:'#6b7280', fontSize:'0.85rem' }}>Clic para cambiar imagen</p>
+                        <p style={{ color:'#9a8f84', fontSize:'0.75rem', marginTop:'0.25rem' }}>JPG, PNG, WEBP, GIF, SVG · Máx 5MB</p>
+                      </>
+                    )}
+                  </label>
+                </div>
+
+                {/* Contacto Banner */}
+                <div className="ynk-card">
+                  <h3 style={{ fontWeight:600, fontSize:'1.1rem', marginBottom:'0.75rem', display:'flex', alignItems:'center', gap:'0.5rem' }}>
+                    <ImageIcon size={18} style={{ color:'#c47d3e' }} />
+                    Imagen de fondo — Contacto
+                  </h3>
+                  <div className="ynk-image-preview" style={{ backgroundImage:`url(${contactoPreview})` }} />
+                  <label className={`ynk-upload-area block ${uploading.contacto ? 'disabled' : ''}`} style={{ display:'block' }}>
+                    <input type="file" accept={FORMATOS_SOPORTADOS.join(',')} onChange={(e) => handleImageUpload(e, 'contacto')} style={{ display:'none' }} disabled={uploading.contacto} />
+                    {uploading.contacto ? (
                       <div style={{ textAlign:'center' }}><div className="animate-spin" style={{ width:'32px', height:'32px', border:'2px solid transparent', borderBottomColor:'#c47d3e', borderRadius:'50%', margin:'0 auto 0.5rem' }}></div><p style={{ color:'#6b7280', fontSize:'0.85rem' }}>Procesando...</p></div>
                     ) : (
                       <>
