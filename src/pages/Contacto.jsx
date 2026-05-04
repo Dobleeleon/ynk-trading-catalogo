@@ -81,8 +81,8 @@ export function Contacto() {
 
   const infoContacto = [
     { icon: Phone, title: 'Teléfono', content: '+57 315 062 68 85', detail: 'Lunes a Viernes 9am - 6pm' },
-    { icon: Mail, title: 'Email', content: 'Adrianao.ynk@gmail.com', detail: 'Respuesta en 24 horas' },
-    { icon: MapPin, title: 'Ubicación', content: 'Ciudad de Panamá', detail: 'Zona Libre de Colón' },
+    { icon: Mail, title: 'Email', content: 'Adrianao.ynk@gmail.com'},
+    { icon: MapPin, title: 'Ubicación', content: 'Ciudad de Panamá'},
     { icon: Clock, title: 'Horario', content: 'Lun - Vie: 9am - 6pm', detail: 'Sábados: 9am - 1pm' }
   ]
 
