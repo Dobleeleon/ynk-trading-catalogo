@@ -1,16 +1,29 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from './context/AuthContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
-import { Navbar } from './components/layout/Navbar'  // Ruta corregida
+import { Navbar } from './components/layout/Navbar'
 import { Home } from './pages/Home'
 import { Catalogo } from './pages/Catalogo'
 import { AdminPanel } from './pages/AdminPanel'
 import { Login } from './pages/Login'
 import { Contacto } from './pages/Contacto'
+import { startDatabaseHealthCheck, stopDatabaseHealthCheck } from './services/supabaseClient'
 
 function App() {
+  useEffect(() => {
+    // Iniciar health check cada 60 minutos (1 hora)
+    // Cambia el número para ajustar la frecuencia:
+    // 60 = 1 hora, 120 = 2 horas, 1440 = 24 horas (1 día)
+    startDatabaseHealthCheck(60)
+
+    // Limpiar al desmontar
+    return () => {
+      stopDatabaseHealthCheck()
+    }
+  }, [])
+
   return (
     <Router>
       <AuthProvider>

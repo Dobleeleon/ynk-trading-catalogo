@@ -217,6 +217,8 @@ export const telaService = {
     return true
   },
 
+
+
   async actualizarImagen(imagenId, esPrincipal) {
     if (!imagenId) {
       throw new Error('ID de imagen no válido')

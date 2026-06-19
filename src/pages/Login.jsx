@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { Eye, EyeOff, ArrowLeft, Sparkles, Shield } from 'lucide-react'
+import loginImage from '../assets/Login.png'
 
 export function Login() {
   const { login } = useAuth()
@@ -30,79 +32,186 @@ export function Login() {
   }
 
   return (
-    <div style={{
-      fontFamily: "'DM Sans', sans-serif",
-      minHeight: '100vh',
-      background: '#f8f4ef',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '2rem'
-    }}>
+    <div className="login-page">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap');
 
-        .ynk-login-card {
-          background: white;
-          border-radius: 24px;
-          padding: 3rem;
-          width: 100%;
-          max-width: 420px;
-          border: 1px solid #e5dfd7;
-          box-shadow: 0 20px 60px rgba(0,0,0,0.06);
+        /* ═══════════════════════════════════════════
+           BASE
+           ═══════════════════════════════════════════ */
+        .login-page {
+          font-family: 'DM Sans', -apple-system, sans-serif;
+          min-height: 100vh;
+          display: flex;
+          background: #fcfbf9;
         }
 
-        .ynk-login-logo {
+        /* ═══════════════════════════════════════════
+           PANEL IZQUIERDO - IMAGEN
+           ═══════════════════════════════════════════ */
+        .login-image-panel {
+          flex: 1;
+          background-image: url('${loginImage}');
+          background-size: cover;
+          background-position: center;
+          position: relative;
+          display: flex;
+          align-items: flex-end;
+          padding: 3rem;
+          min-height: 100vh;
+        }
+        .login-image-overlay {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(
+            180deg,
+            rgba(26, 35, 50, 0.4) 0%,
+            rgba(26, 35, 50, 0.2) 40%,
+            rgba(26, 35, 50, 0.7) 100%
+          );
+        }
+        .login-image-content {
+          position: relative;
+          z-index: 2;
+          color: white;
+          max-width: 420px;
+        }
+        .login-image-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.4rem;
+          font-size: 0.7rem;
+          font-weight: 600;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: #d4954e;
+          margin-bottom: 1.25rem;
+        }
+        .login-image-title {
+          font-family: 'Playfair Display', serif;
+          font-size: 2.2rem;
+          font-weight: 700;
+          line-height: 1.2;
+          margin-bottom: 0.75rem;
+        }
+        .login-image-title em {
+          font-style: italic;
+          color: #d4954e;
+        }
+        .login-image-desc {
+          font-size: 0.9rem;
+          opacity: 0.8;
+          line-height: 1.6;
+          font-weight: 300;
+        }
+
+        /* ═══════════════════════════════════════════
+           PANEL DERECHO - FORMULARIO
+           ═══════════════════════════════════════════ */
+        .login-form-panel {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 2rem;
+          background: white;
+        }
+        .login-form-wrapper {
+          width: 100%;
+          max-width: 420px;
+        }
+        .login-back {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.4rem;
+          font-size: 0.78rem;
+          color: #9a8f84;
+          text-decoration: none;
+          margin-bottom: 2.5rem;
+          transition: color 0.2s;
+          font-weight: 500;
+        }
+        .login-back:hover {
+          color: #c47d3e;
+        }
+        .login-logo {
           font-family: 'Playfair Display', serif;
           font-size: 2rem;
           font-weight: 700;
-          color: #1a2332;
+          color: #1a1a2e;
           margin-bottom: 0.3rem;
         }
-
-        .ynk-login-logo span { color: #c47d3e; font-style: italic; }
-
-        .ynk-login-subtitle {
+        .login-logo span {
+          color: #c47d3e;
+          font-style: italic;
+        }
+        .login-subtitle {
           font-size: 0.85rem;
           color: #9a8f84;
           margin-bottom: 2.5rem;
-          letter-spacing: 0.03em;
+        }
+        .login-subtitle-icon {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.3rem;
+          background: #fef9f4;
+          padding: 0.25rem 0.65rem;
+          border-radius: 20px;
+          font-size: 0.72rem;
+          color: #c47d3e;
+          font-weight: 600;
+          margin-left: 0.5rem;
         }
 
-        .ynk-input-label {
+        /* Campos */
+        .login-field {
+          margin-bottom: 1.3rem;
+        }
+        .login-label {
           display: block;
-          font-size: 0.78rem;
-          font-weight: 600;
-          color: #1a2332;
-          margin-bottom: 0.4rem;
-          letter-spacing: 0.04em;
+          font-size: 0.72rem;
+          font-weight: 700;
+          color: #1a1a2e;
+          margin-bottom: 0.45rem;
+          letter-spacing: 0.06em;
           text-transform: uppercase;
         }
-
-        .ynk-input {
+        .login-input-wrap {
+          position: relative;
+        }
+        .login-input {
           width: 100%;
           padding: 0.85rem 1rem;
-          border: 1.5px solid #e5dfd7;
-          border-radius: 12px;
+          border: 1.5px solid #e8e3d9;
+          border-radius: 14px;
           font-size: 0.9rem;
           font-family: 'DM Sans', sans-serif;
-          color: #1a2332;
+          color: #1a1a2e;
           background: #fdfcfb;
-          transition: all 0.2s ease;
+          transition: all 0.3s ease;
           outline: none;
           box-sizing: border-box;
         }
-
-        .ynk-input:focus {
+        .login-input:focus {
           border-color: #c47d3e;
-          box-shadow: 0 0 0 3px rgba(196,125,62,0.1);
+          box-shadow: 0 0 0 4px rgba(196,125,62,0.06);
           background: white;
         }
-
-        .ynk-input::placeholder { color: #c9c3b8; }
-
-        .ynk-pw-wrap { position: relative; }
-        .ynk-pw-toggle {
+        .login-input::placeholder {
+          color: #c9c3b8;
+        }
+        .login-input-icon {
+          position: absolute;
+          right: 1rem;
+          top: 50%;
+          transform: translateY(-50%);
+          color: #b0a89c;
+          transition: color 0.3s;
+        }
+        .login-input:focus ~ .login-input-icon {
+          color: #c47d3e;
+        }
+        .login-pw-toggle {
           position: absolute;
           right: 1rem;
           top: 50%;
@@ -110,125 +219,249 @@ export function Login() {
           background: none;
           border: none;
           cursor: pointer;
-          font-size: 1rem;
-          color: #9a8f84;
-          padding: 0;
-          line-height: 1;
+          padding: 4px;
+          color: #b0a89c;
+          transition: color 0.2s;
+          display: flex;
+          align-items: center;
+        }
+        .login-pw-toggle:hover {
+          color: #c47d3e;
         }
 
-        .ynk-btn-login {
+        /* Botón */
+        .login-btn {
           width: 100%;
-          padding: 0.95rem;
+          padding: 0.9rem;
           background: #1a2332;
           color: white;
           border: none;
-          border-radius: 40px;
+          border-radius: 14px;
           font-size: 0.85rem;
           font-weight: 600;
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
+          letter-spacing: 0.04em;
           cursor: pointer;
-          transition: all 0.3s ease;
-          margin-top: 0.5rem;
+          transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+          margin-top: 0.75rem;
+          font-family: 'DM Sans', sans-serif;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
         }
-
-        .ynk-btn-login:hover:not(:disabled) {
+        .login-btn:hover:not(:disabled) {
           background: #c47d3e;
           transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(196,125,62,0.3);
         }
-
-        .ynk-btn-login:disabled {
-          opacity: 0.6;
+        .login-btn:disabled {
+          opacity: 0.5;
           cursor: not-allowed;
         }
 
-        .ynk-error {
-          background: #fef2f2;
+        /* Spinner en botón */
+        .login-spinner {
+          width: 16px;
+          height: 16px;
+          border: 2px solid rgba(255,255,255,0.3);
+          border-top-color: white;
+          border-radius: 50%;
+          animation: loginSpin 0.7s linear infinite;
+        }
+        @keyframes loginSpin {
+          to { transform: rotate(360deg); }
+        }
+
+        /* Error */
+        .login-error {
+          background: #fef5f5;
           border: 1px solid #fecaca;
           color: #dc2626;
-          padding: 0.75rem 1rem;
-          border-radius: 10px;
-          font-size: 0.82rem;
-          margin-bottom: 1rem;
-        }
-
-        .ynk-divider {
-          border: none;
-          border-top: 1px solid #e5dfd7;
-          margin: 2rem 0 1.5rem;
-        }
-
-        .ynk-back-link {
-          display: block;
-          text-align: center;
+          padding: 0.8rem 1rem;
+          border-radius: 12px;
           font-size: 0.8rem;
-          color: #9a8f84;
-          text-decoration: none;
-          transition: color 0.2s;
+          margin-bottom: 1.25rem;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+        .login-error-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: #dc2626;
+          flex-shrink: 0;
         }
 
-        .ynk-back-link:hover { color: #c47d3e; }
+        /* Divider */
+        .login-divider {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          margin: 2rem 0 1.5rem;
+          color: #c9c3b8;
+          font-size: 0.72rem;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+        }
+        .login-divider::before,
+        .login-divider::after {
+          content: '';
+          flex: 1;
+          height: 1px;
+          background: #e8e3d9;
+        }
+
+        /* ═══════════════════════════════════════════
+           RESPONSIVE
+           ═══════════════════════════════════════════ */
+        @media (max-width: 900px) {
+          .login-page {
+            flex-direction: column;
+          }
+          .login-image-panel {
+            min-height: 260px;
+            padding: 2rem 1.5rem;
+          }
+          .login-image-title {
+            font-size: 1.6rem;
+          }
+          .login-image-desc {
+            font-size: 0.82rem;
+          }
+          .login-form-panel {
+            padding: 2rem 1.5rem;
+          }
+          .login-form-wrapper {
+            max-width: 100%;
+          }
+        }
       `}</style>
 
-      <div className="ynk-login-card">
-        {/* Logo */}
-        <div className="ynk-login-logo">
-          YNK <span>Trading</span>
+      {/* ═══════════════════════════════════════════
+         PANEL IZQUIERDO - IMAGEN
+         ═══════════════════════════════════════════ */}
+      <div className="login-image-panel">
+        <div className="login-image-overlay" />
+        <div className="login-image-content">
+          <div className="login-image-badge">
+            <Sparkles size={12} />
+            Acceso Exclusivo
+          </div>
+          <h2 className="login-image-title">
+            YNK <em>Trading</em>
+          </h2>
+          <p className="login-image-desc">
+            Panel de administración para gestionar el catálogo de telas, 
+            contenido del sitio y configuraciones.
+          </p>
         </div>
-        <p className="ynk-login-subtitle">Panel de administración · Acceso restringido</p>
+      </div>
 
-        {/* Error */}
-        {error && <div className="ynk-error">⚠️ {error}</div>}
+      {/* ═══════════════════════════════════════════
+         PANEL DERECHO - FORMULARIO
+         ═══════════════════════════════════════════ */}
+      <div className="login-form-panel">
+        <div className="login-form-wrapper">
+          {/* Volver */}
+          <a href="/" className="login-back">
+            <ArrowLeft size={16} />
+            Volver al sitio
+          </a>
 
-        {/* Formulario */}
-        <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: '1.2rem' }}>
-            <label className="ynk-input-label" htmlFor="email">Correo electrónico</label>
-            <input
-              id="email"
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="usuario@ejemplo.com"
-              required
-              className="ynk-input"
-              autoComplete="email"
-            />
+          {/* Logo */}
+          <div className="login-logo">
+            YNK <span>Trading</span>
           </div>
+          <p className="login-subtitle">
+            Inicia sesión para acceder
+            <span className="login-subtitle-icon">
+              <Shield size={11} />
+              Restringido
+            </span>
+          </p>
 
-          <div style={{ marginBottom: '1.5rem' }}>
-            <label className="ynk-input-label" htmlFor="password">Contraseña</label>
-            <div className="ynk-pw-wrap">
-              <input
-                id="password"
-                type={showPassword ? 'text' : 'password'}
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                placeholder="••••••••"
-                required
-                className="ynk-input"
-                autoComplete="current-password"
-              />
-              <button
-                type="button"
-                className="ynk-pw-toggle"
-                onClick={() => setShowPassword(!showPassword)}
-                tabIndex={-1}
-              >
-                {showPassword ? '🙈' : '👁️'}
-              </button>
+          {/* Error */}
+          {error && (
+            <div className="login-error">
+              <span className="login-error-dot" />
+              {error}
             </div>
-          </div>
+          )}
 
-          <button type="submit" className="ynk-btn-login" disabled={loading}>
-            {loading ? 'Iniciando sesión...' : 'Iniciar Sesión →'}
-          </button>
-        </form>
+          {/* Formulario */}
+          <form onSubmit={handleSubmit}>
+            <div className="login-field">
+              <label className="login-label" htmlFor="email">
+                Correo electrónico
+              </label>
+              <div className="login-input-wrap">
+                <input
+                  id="email"
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="usuario@ynktrading.com"
+                  required
+                  className="login-input"
+                  autoComplete="email"
+                />
+              </div>
+            </div>
 
-        <hr className="ynk-divider" />
-        <a href="/" className="ynk-back-link">← Volver al sitio</a>
+            <div className="login-field">
+              <label className="login-label" htmlFor="password">
+                Contraseña
+              </label>
+              <div className="login-input-wrap">
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="••••••••"
+                  required
+                  className="login-input"
+                  autoComplete="current-password"
+                  style={{ paddingRight: '2.8rem' }}
+                />
+                <button
+                  type="button"
+                  className="login-pw-toggle"
+                  onClick={() => setShowPassword(!showPassword)}
+                  tabIndex={-1}
+                  aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
+            <button type="submit" className="login-btn" disabled={loading}>
+              {loading ? (
+                <>
+                  <span className="login-spinner" />
+                  Verificando...
+                </>
+              ) : (
+                'Iniciar Sesión'
+              )}
+            </button>
+          </form>
+
+          <div className="login-divider">Acceso restringido</div>
+          <p style={{ 
+            textAlign: 'center', 
+            fontSize: '0.72rem', 
+            color: '#b0a89c',
+            lineHeight: 1.5
+          }}>
+            Solo personal autorizado. Si olvidaste tus credenciales, 
+            contacta al administrador del sistema.
+          </p>
+        </div>
       </div>
     </div>
   )
